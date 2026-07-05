@@ -7,7 +7,7 @@
 // Atualização: Toast no app → postMessage('SKIP_WAITING')
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v18';
+const VERSAO = 'v19';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
