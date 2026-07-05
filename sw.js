@@ -1,13 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
 // DailyRealm — Service Worker
 // ─────────────────────────────────────────────────────────────
-// Versão.....: v15
+// Versão.....: v16
 // Estratégia.: Network-First para HTML | Cache-First para assets
 // Fallback...: index.html para navegação offline
 // Atualização: Toast no app → postMessage('SKIP_WAITING')
+// Push.......: v16 adiciona listener de push real (app fechado)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v20';
+const VERSAO = 'v22';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
@@ -176,6 +177,54 @@ self.addEventListener('fetch', (event) => {
   } else {
     event.respondWith(cacheFirst(req));
   }
+});
+
+// ─── 4.5. PUSH REAL (funciona com o app/navegador fechado) ─────
+// Chave pública VAPID — igual à do app.js e do worker-push.js
+const VAPID_PUBLIC_KEY_SW = 'BKyo3wLevTeip7QqGs5A40iombFOXYkShF4HE76kmQEXtjnHjb_gG6uaocP0PhZrXXZ7bl0f8E-FmQMBNCdueYU';
+const PUSH_WORKER_URL = 'https://dailyrealm-push.dailyrealm.workers.dev/';
+
+function urlBase64ParaUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+self.addEventListener('push', (event) => {
+  let dados = { titulo: '👑 DailyRealm', corpo: 'Você tem novidades! ✨' };
+  try {
+    if (event.data) dados = event.data.json();
+  } catch (e) {
+    console.warn(`[SW ${VERSAO}] ⚠️ Push sem JSON válido:`, e);
+  }
+  const opts = {
+    body: dados.corpo,
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: 'dailyrealm-lembrete',
+    vibrate: [200, 100, 200]
+  };
+  event.waitUntil(self.registration.showNotification(dados.titulo, opts));
+});
+
+// Se o navegador invalidar a inscrição (raro, mas acontece), tenta renovar sozinho
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ParaUint8Array(VAPID_PUBLIC_KEY_SW)
+    }).then(novaSubscription => {
+      // Reenvia pro Worker junto com os horários já salvos localmente
+      return self.clients.matchAll().then(clientes => {
+        if (clientes.length > 0) {
+          clientes[0].postMessage({ type: 'RESUBSCRIBE_PUSH', subscription: novaSubscription.toJSON() });
+        }
+      });
+    }).catch(err => console.warn(`[SW ${VERSAO}] ⚠️ Falha ao renovar push:`, err))
+  );
 });
 
 // ─── 5. CLIQUE EM NOTIFICAÇÃO ──────────────────────────────────
