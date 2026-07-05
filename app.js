@@ -12,9 +12,10 @@
 //              v15.3: Sons WebAudio (concluir, level up, streak)
 //              v15.4: Sistema de Conquistas/Troféus (13 troféus)
 //              v15.5: Lembretes MVP (períodos + insistência)
+//              v15.6: Fix câmera em celular (click síncrono, sem setTimeout)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v15.5';
+const APP_VERSAO = 'v15.6';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -1044,8 +1045,11 @@ function fecharEscolha() {
   document.getElementById('modal-escolha')?.classList.remove('active');
 }
 function escolherFoto() {
+  // Correção: chamada síncrona (sem setTimeout). Celulares exigem que
+  // input.click() ocorra no mesmo instante do toque do usuário — um
+  // atraso, mesmo pequeno, faz o Android bloquear a câmera silenciosamente.
+  abrirCameraFoto();
   fecharEscolha();
-  setTimeout(() => abrirCameraFoto(), 180);
 }
 function escolherDigitar() {
   fecharEscolha();
