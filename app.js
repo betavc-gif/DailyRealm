@@ -14,9 +14,13 @@
 //              v15.5: Lembretes MVP (períodos + insistência)
 //              v15.6: Fix câmera em celular (click síncrono, sem setTimeout)
 //              v15.7: Toast de erro do OCR visível por 10s (debug em celular)
+//              v15.8: Fix real da câmera — input não pode usar display:none
+//                     em celulares (troca pra técnica "visually hidden")
+//              v16.0: Push real (funciona com app/navegador fechado) via
+//                     Worker dailyrealm-push + VAPID + Web Push criptografado
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v15.7';
+const APP_VERSAO = 'v16.0';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -28,6 +32,67 @@ if (window.matchMedia('(display-mode: standalone)').matches) {
 // ═══════════════════════════════════════════════
 const OCR_WORKER_URL = 'https://dailyrealm-ocr.dailyrealm.workers.dev/';
 let _ocrEmAndamento = false; // N5: proteção contra duplo clique
+
+// ═══════════════════════════════════════════════
+// CONFIGURAÇÃO PUSH REAL (funciona com app fechado)
+// ═══════════════════════════════════════════════
+const PUSH_WORKER_URL = 'https://dailyrealm-push.dailyrealm.workers.dev/';
+const VAPID_PUBLIC_KEY = 'BKyo3wLevTeip7QqGs5A40iombFOXYkShF4HE76kmQEXtjnHjb_gG6uaocP0PhZrXXZ7bl0f8E-FmQMBNCdueYU';
+
+function urlBase64ParaUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// Garante inscrição de push ativa e manda os horários atuais pro Worker.
+// Chamar sempre que: permissão for concedida, ou horários/insistência mudarem.
+async function sincronizarPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+    if (!subscription) {
+      if (!STATE.config.notificacoes) return; // nada pra sincronizar se nunca assinou e está desligado
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ParaUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    await fetch(PUSH_WORKER_URL + 'subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        // Manda horários vazios quando desligado — silencia sem precisar desinscrever
+        horarios: STATE.config.notificacoes ? STATE.config.horarios : {},
+        insistirHoras: STATE.config.notificacoes ? STATE.config.insistirHoras : 0
+      })
+    });
+  } catch (e) {
+    console.warn('[Push] ⚠️ Falha ao sincronizar inscrição:', e);
+  }
+}
+
+// Reage à renovação automática de inscrição feita pelo Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'RESUBSCRIBE_PUSH') {
+      fetch(PUSH_WORKER_URL + 'subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: event.data.subscription,
+          horarios: STATE.config.notificacoes ? STATE.config.horarios : {},
+          insistirHoras: STATE.config.notificacoes ? STATE.config.insistirHoras : 0
+        })
+      }).catch(() => {});
+    }
+  });
+}
 
 // ═══════════════════════════════════════════════
 // CATEGORIAS PADRÃO
@@ -268,6 +333,7 @@ async function pedirPermissaoNotificacao() {
     salvar();
     atualizarToggleNotificacoes();
     notificacaoTeste();
+    sincronizarPush(); // ativa o lembrete real (funciona com app fechado)
     return true;
   }
   if (Notification.permission === 'denied') {
@@ -281,6 +347,7 @@ async function pedirPermissaoNotificacao() {
     atualizarToggleNotificacoes();
     mostrarToast('🔔 Notificações ativadas!');
     notificacaoTeste();
+    sincronizarPush(); // ativa o lembrete real (funciona com app fechado)
     return true;
   } else {
     STATE.config.notificacoes = false;
@@ -1585,12 +1652,14 @@ function salvarConfigNome() {
 function salvarConfigHorario(periodo, valor) {
   STATE.config.horarios[periodo] = valor;
   salvar();
+  sincronizarPush(); // mantém o Worker de push com os horários atualizados
 }
 
 function salvarConfigInsistir(valor) {
   STATE.config.insistirHoras = parseInt(valor, 10) || 0;
   salvar();
   mostrarToast(`🔁 Insistência: ${STATE.config.insistirHoras}h`);
+  sincronizarPush();
 }
 
 function toggleConfigSons(checked) {
@@ -1612,6 +1681,7 @@ async function toggleConfigNotificacoes(checked) {
     STATE.config.notificacoes = false;
     salvar();
     mostrarToast('🔕 Notificações desligadas');
+    sincronizarPush(); // avisa o Worker pra parar de mandar (horários vazios)
   }
 }
 
@@ -1809,6 +1879,12 @@ if (!onboardingAtivo) {
 // 🔔 Lembretes: checa ao abrir e a cada minuto com o app aberto
 verificarLembretes();
 setInterval(verificarLembretes, 60000);
+
+// 🔔 Push real: se já tinha permissão concedida antes, garante que o
+// Worker está com os horários mais atuais (funciona com app fechado)
+if (STATE.config.notificacoes && window.Notification?.permission === 'granted') {
+  sincronizarPush();
+}
 
 // B6: garante versão no HTML mesmo se hardcoded estiver desatualizado
 const elVersion = document.getElementById('app-version');
