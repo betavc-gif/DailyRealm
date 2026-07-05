@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- SEO & Social -->
+  <title>DailyRealm 👑 — Sua Jornada Diária</title>
+  <meta name="description" content="DailyRealm: transforme sua rotina em uma jornada épica. Complete quests diárias, evolua seu personagem e conquiste seus objetivos.">
+  <meta property="og:title" content="DailyRealm — Sua Jornada Diária">
+  <meta property="og:description" content="Transforme sua rotina em uma jornada épica.">
+  <meta property="og:type" content="website">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS / Apple PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DailyRealm">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+  <!-- Favicon (coroa inline SVG, sem arquivo externo) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
+
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- App principal: defer garante execução após DOM pronto, sem bloquear renderização -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!-- Fallback para JS desativado -->
+  <noscript>
+    <div style="padding:24px;background:#1a1a2e;color:#fff;font-family:sans-serif;text-align:center;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+      <h1>⚔️ DailyRealm</h1>
+      <p>Esta aplicação precisa de <strong>JavaScript</strong> para funcionar.</p>
+      <p>Por favor, habilite o JavaScript nas configurações do seu navegador e recarregue a página.</p>
+    </div>
+  </noscript>
+
+  <div class="app-container">
+
+    <!-- TELA DE ONBOARDING (primeiro acesso) -->
+    <div class="tela-onboarding" id="tela-onboarding">
+      <div class="onboarding-conteudo">
+        <div class="onboarding-avatar">👑</div>
+        <h1 class="onboarding-titulo">DailyRealm</h1>
+        <p class="onboarding-sub">Sua jornada épica começa agora ✨</p>
+
+        <form class="onboarding-form" onsubmit="salvarNomeOnboarding(event)">
+          <label class="onboarding-label" for="onboarding-nome">Como devo te chamar?</label>
+          <input
+            type="text"
+            id="onboarding-nome"
+            class="onboarding-input"
+            placeholder="Seu nome ou apelido"
+            maxlength="30"
+            autocomplete="given-name"
+            autocapitalize="words"
+            spellcheck="false"
+            required
+          />
+          <button type="submit" class="onboarding-btn">
+            ⚔️ Começar minha jornada
+          </button>
+          <p class="onboarding-dica">💡 Você pode mudar depois nas Configurações</p>
+        </form>
+      </div>
+    </div>
+
+    <!-- TELA 1: INÍCIO -->
+    <main class="screen screen-home active" id="screen-home">
+      <div class="avatar-container">
+        <div class="avatar">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="avatar-title">
+            <title id="avatar-title">Avatar da guerreira DailyRealm</title>
+            <ellipse cx="100" cy="85" rx="55" ry="60" fill="#5C3A21"/>
+            <ellipse cx="100" cy="95" rx="40" ry="48" fill="#F5D5B8"/>
+            <path d="M 60 75 Q 100 50 140 75 Q 130 60 100 55 Q 70 60 60 75" fill="#5C3A21"/>
+            <circle cx="85" cy="95" r="3" fill="#2C1810"/>
+            <circle cx="115" cy="95" r="3" fill="#2C1810"/>
+            <path d="M 90 115 Q 100 122 110 115" stroke="#C44569" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="75" cy="108" r="5" fill="#FFB6B6" opacity="0.5"/>
+            <circle cx="125" cy="108" r="5" fill="#FFB6B6" opacity="0.5"/>
+            <rect x="55" y="155" width="90" height="45" fill="#F5D5B8" rx="10"/>
+            <g id="tatuagem-hera" opacity="0.85">
+              <path d="M 115 165 Q 118 175 116 185 Q 113 195 117 205 Q 120 213 116 220" stroke="#2d5016" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+              <path d="M 116 172 Q 110 170 106 173" stroke="#2d5016" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+              <path d="M 106 173 Q 102 170 104 167 Q 107 166 108 169 Q 109 172 106 173 Z" fill="#4a7c2e" stroke="#2d5016" stroke-width="0.4"/>
+              <path d="M 116 188 Q 122 187 125 190" stroke="#2d5016" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+              <path d="M 125 190 Q 129 188 128 192 Q 126 195 123 193 Q 122 191 125 190 Z" fill="#5a8c3e" stroke="#2d5016" stroke-width="0.4"/>
+              <path d="M 116 202 Q 110 204 108 208" stroke="#2d5016" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+              <path d="M 108 208 Q 104 209 105 213 Q 108 214 110 211 Q 111 209 108 208 Z" fill="#4a7c2e" stroke="#2d5016" stroke-width="0.4"/>
+              <path d="M 116 165 Q 113 162 115 160 Q 118 161 118 164 Z" fill="#5a8c3e" stroke="#2d5016" stroke-width="0.4"/>
+            </g>
+            <polygon points="80,45 90,30 100,40 110,30 120,45" fill="#FFD700" stroke="#B8860B" stroke-width="1"/>
+            <circle cx="90" cy="32" r="2" fill="#FF1493"/>
+            <circle cx="100" cy="40" r="2" fill="#00CED1"/>
+            <circle cx="110" cy="32" r="2" fill="#9370DB"/>
+          </svg>
+        </div>
+      </div>
+
+      <header class="screen-header">
+        <h1 class="title">DailyRealm</h1>
+        <p class="subtitle">Bem-vinda, <span class="user-name">Guerreira</span> 👑</p>
+      </header>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Nível</span>
+          <span class="stat-value" id="stat-nivel">1</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">XP</span>
+          <span class="stat-value" id="stat-xp">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Streak 🔥</span>
+          <span class="stat-value" id="stat-streak">0</span>
+        </div>
+      </div>
+
+      <!-- U2: barra de progresso até o próximo nível -->
+      <div class="xp-bar-wrap" role="progressbar" aria-label="Progresso para o próximo nível">
+        <div class="xp-bar" id="xp-bar"></div>
+        <span class="xp-bar-txt" id="xp-bar-txt">0 / 100 XP</span>
+      </div>
+
+      <button class="btn-start" onclick="navegarPara('tarefas')">
+        ⚔️ Ver minhas Quests
+      </button>
+
+      <p class="motto">Tua aventura começa agora ✨</p>
+    </main>
+
+    <!-- TELA 2: TAREFAS -->
+    <main class="screen screen-tarefas" id="screen-tarefas">
+      <header class="screen-header">
+        <h1 class="title">Minhas Quests ⚔️</h1>
+        <p class="subtitle">Conquiste o dia, <span class="user-name">guerreira</span>!</p>
+      </header>
+
+      <div class="filtros" id="filtros-categorias">
+        <button class="filtro active" data-cat="todas">✨ Todas</button>
+      </div>
+
+      <div class="quest-list" id="quest-list">
+        <div class="empty-state">
+          <div class="empty-icon">📜</div>
+          <p class="empty-title">Nenhuma quest ainda</p>
+          <p class="empty-desc">Toque no botão <strong>+</strong> e crie sua primeira aventura!</p>
+        </div>
+      </div>
+
+      <button class="fab" id="btnAddQuest" aria-label="Adicionar nova quest" onclick="abrirEscolha()">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+    </main>
+
+    <!-- TELA 3: CONQUISTAS -->
+    <main class="screen screen-conquistas" id="screen-conquistas">
+      <header class="screen-header">
+        <h1 class="title">Conquistas 🏆</h1>
+        <p class="subtitle" id="conquistas-contador">Seus troféus épicos</p>
+      </header>
+
+      <div class="conquistas-grid" id="conquistas-lista"></div>
+    </main>
+
+    <!-- TELA 4: CONFIGURAÇÕES -->
+    <main class="screen screen-config" id="screen-config">
+      <header class="screen-header">
+        <h1 class="title">Config ⚙️</h1>
+        <p class="subtitle">Personalize sua jornada</p>
+      </header>
+
+      <div class="config-list">
+
+        <!-- 👤 NOME -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">👤 Identidade</div>
+          <div class="config-item config-item-input">
+            <label for="config-nome">Seu nome</label>
+            <input
+              type="text"
+              id="config-nome"
+              maxlength="30"
+              placeholder="Como devo te chamar?"
+              autocapitalize="words"
+              spellcheck="false"
+              onblur="salvarConfigNome()"
+            />
+          </div>
+        </div>
+
+        <!-- 🔔 NOTIFICAÇÕES E HORÁRIOS -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">🔔 Lembretes</div>
+
+          <div class="config-item">
+            <span>🔔 Ativar notificações</span>
+            <label class="switch">
+              <input type="checkbox" id="config-notificacoes"
+                     onchange="toggleConfigNotificacoes(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="hora-manha">🌅 Lembrete manhã</label>
+            <input type="time" id="hora-manha" step="60"
+                   onchange="salvarConfigHorario('manha', this.value)">
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="hora-tarde">☀️ Lembrete tarde</label>
+            <input type="time" id="hora-tarde" step="60"
+                   onchange="salvarConfigHorario('tarde', this.value)">
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="hora-noite">🌙 Lembrete noite</label>
+            <input type="time" id="hora-noite" step="60"
+                   onchange="salvarConfigHorario('noite', this.value)">
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="config-insistir">🔁 Insistir a cada (h)</label>
+            <select id="config-insistir"
+                    onchange="salvarConfigInsistir(this.value)">
+              <option value="0">Não insistir</option>
+              <option value="1">1 hora</option>
+              <option value="2">2 horas</option>
+              <option value="3">3 horas</option>
+              <option value="4">4 horas</option>
+            </select>
+          </div>
+
+          <div class="config-item">
+            <span>🌅 Perguntar horários ao abrir</span>
+            <label class="switch">
+              <input type="checkbox" id="config-perguntar-horarios"
+                     onchange="toggleConfigPerguntar(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 🗂️ CATEGORIAS -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">🗂️ Categorias</div>
+
+          <p class="config-hint">Personalize as categorias das suas quests</p>
+
+          <button type="button"
+                  class="btn-add-categoria"
+                  onclick="abrirGerenciarCategorias()">
+            ✏️ Gerenciar categorias →
+          </button>
+        </div>
+
+        <!-- 🎨 APARÊNCIA E SOM -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">🎨 Aparência</div>
+
+          <div class="config-item">
+            <span>🔊 Sons</span>
+            <label class="switch">
+              <input type="checkbox" id="config-sons" checked
+                     onchange="toggleConfigSons(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="config-item">
+            <span>🌙 Modo escuro</span>
+            <label class="switch">
+              <input type="checkbox" id="config-escuro" checked
+                     onchange="toggleConfigEscuro(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 🚨 ZONA DE PERIGO (sempre por último, antes da versão) -->
+        <div class="config-grupo config-grupo-perigo">
+          <div class="config-grupo-titulo" style="color:#ff6b6b;">🚨 Zona de perigo</div>
+          <p class="config-hint" style="margin-bottom:10px;">
+            Ações irreversíveis. Use com cuidado.
+          </p>
+          <button type="button"
+                  class="btn-reset-progresso"
+                  onclick="resetarProgresso()"
+                  style="width:100%;padding:12px;background:rgba(255,80,80,0.12);color:#ff6b6b;border:1px solid rgba(255,80,80,0.3);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+            🔄 Resetar progresso
+          </button>
+        </div>
+
+        <!-- B6: versão hardcoded como fallback -->
+        <p class="config-versao">
+          DailyRealm <span id="app-version">v15.5</span> ⚔️
+        </p>
+      </div>
+    </main>
+
+    <!-- MENU INFERIOR -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-screen="home" onclick="navegarPara('home')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Início</span>
+      </button>
+      <button class="nav-item" data-screen="tarefas" onclick="navegarPara('tarefas')">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">Quests</span>
+      </button>
+      <button class="nav-item" data-screen="conquistas" onclick="navegarPara('conquistas')">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Troféus</span>
+      </button>
+      <button class="nav-item" data-screen="config" onclick="navegarPara('config')">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Config</span>
+      </button>
+    </nav>
+
+    <!-- MODAL DE ESCOLHA -->
+    <div class="modal-overlay" id="modal-escolha" role="dialog" aria-modal="true" aria-labelledby="modal-escolha-titulo">
+      <div class="modal modal-escolha">
+        <header class="modal-header">
+          <h2 id="modal-escolha-titulo">✨ Como criar?</h2>
+          <button class="modal-close" onclick="fecharEscolha()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="escolha-body">
+          <p class="escolha-intro">Escolha o método mais rápido pra você agora 👇</p>
+
+          <button class="choice-card choice-photo" onclick="escolherFoto()">
+            <div class="choice-icon">📸</div>
+            <div class="choice-text">
+              <div class="choice-title">Por Foto</div>
+              <div class="choice-sub">do planner</div>
+            </div>
+            <div class="choice-badge">⚡ Rápido • Mágico</div>
+          </button>
+
+          <button class="choice-card choice-manual" onclick="escolherDigitar()">
+            <div class="choice-icon">✏️</div>
+            <div class="choice-text">
+              <div class="choice-title">Digitar</div>
+              <div class="choice-sub">manualmente</div>
+            </div>
+            <div class="choice-badge">📝 Tradicional</div>
+          </button>
+
+          <button class="btn-secondary btn-cancelar-escolha" onclick="fecharEscolha()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NOVA QUEST -->
+    <div class="modal-overlay" id="modal-nova-quest" role="dialog" aria-modal="true" aria-labelledby="modal-nova-quest-titulo">
+      <div class="modal">
+        <header class="modal-header">
+          <h2 id="modal-nova-quest-titulo">✨ Nova Quest</h2>
+          <button class="modal-close" onclick="fecharNovaQuest()" aria-label="Fechar">✕</button>
+        </header>
+
+        <form class="modal-form" id="form-nova-quest" onsubmit="criarQuest(event)">
+          <label class="field">
+            <span class="field-label">📝 Título da Quest</span>
+            <input type="text" id="quest-titulo" placeholder="Ex: Lavar a louça"
+                   maxlength="100" autocapitalize="sentences" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">📋 Descrição (opcional)</span>
+            <textarea id="quest-desc" placeholder="Detalhes, observações..."
+                      rows="3" maxlength="300" autocapitalize="sentences"></textarea>
+          </label>
+
+          <div class="field">
+            <span class="field-label">🗂️ Categoria</span>
+            <div class="category-picker" id="category-picker-novaquest"></div>
+          </div>
+
+          <div class="field">
+            <span class="field-label">⚔️ Dificuldade (XP)</span>
+            <div class="difficulty-picker">
+              <button type="button" class="diff-btn active" data-xp="10">
+                <span class="diff-icon">🟢</span>
+                <span class="diff-name">Fácil</span>
+                <span class="diff-xp">+10 XP</span>
+              </button>
+              <button type="button" class="diff-btn" data-xp="25">
+                <span class="diff-icon">🟡</span>
+                <span class="diff-name">Médio</span>
+                <span class="diff-xp">+25 XP</span>
+              </button>
+              <button type="button" class="diff-btn" data-xp="50">
+                <span class="diff-icon">🔴</span>
+                <span class="diff-name">Difícil</span>
+                <span class="diff-xp">+50 XP</span>
+              </button>
+              <button type="button" class="diff-btn" data-xp="100">
+                <span class="diff-icon">💎</span>
+                <span class="diff-name">Épica</span>
+                <span class="diff-xp">+100 XP</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="fecharNovaQuest()">Cancelar</button>
+            <button type="submit" class="btn-primary">⚔️ Criar Quest</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL GERENCIAR CATEGORIAS -->
+    <div class="modal-overlay" id="modal-gerenciar-categorias" role="dialog" aria-modal="true" aria-labelledby="modal-gerenciar-cat-titulo">
+      <div class="modal modal-gerenciar-cat">
+        <header class="modal-header">
+          <h2 id="modal-gerenciar-cat-titulo">🗂️ Gerenciar Categorias</h2>
+          <button class="modal-close" onclick="fecharGerenciarCategorias()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="modal-form">
+
+          <div class="gerenciar-secao">
+            <h3 class="gerenciar-secao-titulo">✅ Suas categorias</h3>
+            <p class="field-hint">Desative para esconder ou exclua permanentemente</p>
+            <div class="categorias-lista" id="categorias-lista"></div>
+          </div>
+
+          <div class="gerenciar-secao">
+            <h3 class="gerenciar-secao-titulo">➕ Sugestões</h3>
+            <p class="field-hint">Toque para adicionar à sua lista</p>
+            <div class="cat-sugestoes" id="cat-sugestoes"></div>
+          </div>
+
+          <div class="gerenciar-secao">
+            <h3 class="gerenciar-secao-titulo">✨ Criar personalizada</h3>
+            <button type="button"
+                    class="btn-add-categoria"
+                    onclick="abrirNovaCategoria()">
+              ✨ Criar do zero
+            </button>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-primary" onclick="fecharGerenciarCategorias()">
+              ✅ Concluir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NOVA CATEGORIA -->
+    <div class="modal-overlay" id="modal-nova-categoria" role="dialog" aria-modal="true" aria-labelledby="modal-nova-cat-titulo">
+      <div class="modal">
+        <header class="modal-header">
+          <h2 id="modal-nova-cat-titulo">➕ Nova Categoria</h2>
+          <button class="modal-close" onclick="fecharNovaCategoria()" aria-label="Fechar">✕</button>
+        </header>
+
+        <form class="modal-form" id="form-nova-categoria" onsubmit="criarCategoria(event)">
+
+          <label class="field">
+            <span class="field-label">📝 Nome da categoria</span>
+            <input type="text" id="cat-nome"
+                   placeholder="Ex: Estudos, Saúde, Finanças..."
+                   maxlength="30" autocapitalize="words" spellcheck="false" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">😀 Emoji</span>
+            <input type="text" id="cat-emoji"
+                   placeholder="Ex: 📚 💪 💰"
+                   maxlength="4" required>
+            <span class="field-hint">Cole um emoji ou digite (ex: 📚)</span>
+          </label>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="fecharNovaCategoria()">Cancelar</button>
+            <button type="submit" class="btn-primary">✨ Criar Categoria</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL DESATIVAR CATEGORIA COM QUESTS -->
+    <div class="modal-overlay" id="modal-desativar-categoria" role="dialog" aria-modal="true" aria-labelledby="modal-desativar-titulo">
+      <div class="modal">
+        <header class="modal-header">
+          <h2 id="modal-desativar-titulo">⚠️ Atenção</h2>
+          <button class="modal-close" onclick="fecharDesativarCategoria()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="modal-form">
+          <p class="aviso-desativar" id="aviso-desativar-texto">
+            Esta categoria possui quests ativas.
+          </p>
+
+          <div class="field">
+            <span class="field-label">📦 Mover quests para:</span>
+            <select id="cat-destino-mover"></select>
+            <span class="field-hint">As quests existentes serão movidas para a categoria escolhida.</span>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="fecharDesativarCategoria()">Cancelar</button>
+            <button type="button" class="btn-primary" id="btn-confirmar-desativar" onclick="confirmarDesativarCategoria()">
+              ✅ Mover e desativar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO GENÉRICO (substitui confirm() nativo) -->
+    <div class="modal-overlay" id="modal-confirmar" role="dialog" aria-modal="true" aria-labelledby="modal-confirmar-titulo">
+      <div class="modal modal-confirmar">
+        <header class="modal-header">
+          <h2 id="modal-confirmar-titulo">Confirmar</h2>
+          <button class="modal-close" onclick="fecharConfirmar(false)" aria-label="Fechar">✕</button>
+        </header>
+        <div class="modal-form">
+          <p class="confirmar-msg" id="modal-confirmar-msg">Tem certeza?</p>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="fecharConfirmar(false)">Cancelar</button>
+            <button type="button" class="btn-primary" onclick="fecharConfirmar(true)">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELA DE PREVIEW DA FOTO -->
+    <div class="preview-overlay" id="preview-foto">
+      <header class="preview-header">
+        <button class="preview-cancel" onclick="cancelarPreview()" aria-label="Cancelar">
+          ← Cancelar
+        </button>
+        <span class="preview-titulo">📸 Preview</span>
+      </header>
+
+      <div class="preview-imagem-wrap">
+        <img id="preview-img" alt="Preview da foto" />
+      </div>
+
+      <div class="preview-acoes">
+        <button class="btn-secondary preview-btn-refazer" onclick="tirarOutraFoto()">
+          🔄 Tirar outra
+        </button>
+        <button class="btn-primary preview-btn-confirmar" onclick="confirmarFoto()">
+          ✅ Confirmar e ler
+        </button>
+      </div>
+    </div>
+
+    <!-- TELA DE REVISÃO -->
+    <div id="tela-revisao" class="tela-revisao">
+      <div class="revisao-header">
+        <button class="revisao-voltar" onclick="cancelarRevisao()" aria-label="Voltar">←</button>
+        <div class="revisao-titulo">
+          <h2 id="revisao-titulo-txt">✨ Encontrei 0 quests!</h2>
+          <p class="revisao-sub">Revise, edite e confirme</p>
+        </div>
+      </div>
+
+      <div class="revisao-lista" id="revisao-lista"></div>
+
+      <div class="revisao-acoes">
+        <button class="btn-cancelar-revisao" onclick="cancelarRevisao()">
+          Cancelar
+        </button>
+        <button class="btn-confirmar-revisao" id="btn-confirmar-revisao" onclick="confirmarRevisao()">
+          ⚔️ Criar quests
+        </button>
+      </div>
+    </div>
+
+    <!-- Input invisível de câmera -->
+    <input
+      type="file"
+      id="input-camera"
+      accept="image/*"
+      capture="environment"
+      style="display:none"
+      onchange="aoTirarFoto(event)"
+    />
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  </div>
+
+</body>
+</html>

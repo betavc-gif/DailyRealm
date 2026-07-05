@@ -1,0 +1,71 @@
+{
+  "name": "DailyRealm — Sua Jornada Diária",
+  "short_name": "DailyRealm",
+  "description": "Transforme sua rotina em uma jornada épica. Complete quests diárias, evolua seu personagem e conquiste seus objetivos.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "lifestyle", "games"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjODMzOGVjIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjM2EwY2E4Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIzMiIgZmlsbD0idXJsKCNnKSIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDk2IDExMCkgc2NhbGUoMy44KSI+PHBhdGggZD0iTS0yMCAtMTAgTC0xMiAxMCBMMCAtNiBMMTIgMTAgTDIwIC0xMCBMMTYgMTQgTC0xNiAxNCBaIiBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNCODg2MEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PGNpcmNsZSBjeD0iLTIwIiBjeT0iLTEwIiByPSIzIiBmaWxsPSIjZmYwMDZlIi8+PGNpcmNsZSBjeD0iMCIgY3k9Ii02IiByPSIzLjUiIGZpbGw9IiNmZjAwNmUiLz48Y2lyY2xlIGN4PSIyMCIgY3k9Ii0xMCIgcj0iMyIgZmlsbD0iI2ZmMDA2ZSIvPjxyZWN0IHg9Ii0xOCIgeT0iMTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSI0IiBmaWxsPSIjQjg4NjBCIi8+PC9nPjwvc3ZnPg==",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjODMzOGVjIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjM2EwY2E4Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4NiIgZmlsbD0idXJsKCNnKSIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1NiAyOTMpIHNjYWxlKDEwLjEpIj48cGF0aCBkPSJNLTIwIC0xMCBMLTEyIDEwIEwwIC02IEwxMiAxMCBMMjAgLTEwIEwxNiAxNCBMLTE2IDE0IFoiIGZpbGw9IiNGRkQ3MDAiIHN0cm9rZT0iI0I4ODYwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSItMjAiIGN5PSItMTAiIHI9IjMiIGZpbGw9IiNmZjAwNmUiLz48Y2lyY2xlIGN4PSIwIiBjeT0iLTYiIHI9IjMuNSIgZmlsbD0iI2ZmMDA2ZSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iLTEwIiByPSIzIiBmaWxsPSIjZmYwMDZlIi8+PHJlY3QgeD0iLTE4IiB5PSIxNCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjQiIGZpbGw9IiNCODg2MEIiLz48L2c+PC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Minhas Quests",
+      "short_name": "Quests",
+      "description": "Ver lista de quests do dia",
+      "url": "./index.html?tela=tarefas",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Nova Quest",
+      "short_name": "Nova",
+      "description": "Criar uma nova quest rapidamente",
+      "url": "./index.html?acao=nova-quest",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
