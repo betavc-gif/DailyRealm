@@ -18,9 +18,11 @@
 //                     em celulares (troca pra técnica "visually hidden")
 //              v16.0: Push real (funciona com app/navegador fechado) via
 //                     Worker dailyrealm-push + VAPID + Web Push criptografado
+//              v17.0: Foto de prova obrigatória (+5 XP bônus) com botão de
+//                     compartilhar | Recompensas reais editáveis por troféu
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v16.0';
+const APP_VERSAO = 'v17.0';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -32,6 +34,11 @@ if (window.matchMedia('(display-mode: standalone)').matches) {
 // ═══════════════════════════════════════════════
 const OCR_WORKER_URL = 'https://dailyrealm-ocr.dailyrealm.workers.dev/';
 let _ocrEmAndamento = false; // N5: proteção contra duplo clique
+
+// ═══════════════════════════════════════════════
+// FOTO DE PROVA (conclusão de quests marcadas como "requerFoto")
+// ═══════════════════════════════════════════════
+const XP_BONUS_FOTO_PROVA = 5; // bônus fixo ao concluir com prova, conforme doc mestre
 
 // ═══════════════════════════════════════════════
 // CONFIGURAÇÃO PUSH REAL (funciona com app fechado)
@@ -169,10 +176,15 @@ const STATE = {
     horarios: { ...CONFIG_PADRAO.horarios, ...(_cfgSalvo.horarios || {}) }
   },
   categorias: lerStorage('dr_categorias', CATEGORIAS_PADRAO),
+  // T2: recompensas reais definidas pela Roberta por troféu — { [conquistaId]: { texto, resgatado } }
+  recompensas: lerStorage('dr_recompensas', {}),
   filtroAtivo: 'todas',
-  modal: { categoria: 'casa', xp: 10 },
+  modal: { categoria: 'casa', xp: 10, requerFoto: false },
   fotoAtual: null,
-  categoriaParaDesativar: null
+  categoriaParaDesativar: null,
+  // T1: foto de prova — quest aguardando confirmação com foto
+  provaFotoAtual: null,
+  provaQuestId: null
 };
 
 // Sanidade: se categorias vier vazio/inválido, restaura padrão
@@ -208,6 +220,7 @@ function _salvarImediato() {
     localStorage.setItem('dr_player', JSON.stringify(STATE.player));
     localStorage.setItem('dr_config', JSON.stringify(STATE.config));
     localStorage.setItem('dr_categorias', JSON.stringify(STATE.categorias));
+    localStorage.setItem('dr_recompensas', JSON.stringify(STATE.recompensas));
   } catch (e) {
     console.error('[Storage] ❌ Falha ao salvar:', e);
     mostrarToast('⚠️ Erro ao salvar dados');
@@ -251,7 +264,7 @@ function getNomeCategoria(id) {
 
 function gerarIdCategoria(nome) {
   const base = nome.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
@@ -837,6 +850,7 @@ function renderQuests() {
         <div class="quest-meta">
           <span class="quest-cat-tag">${escapeHTML(getEmojiCategoria(q.categoria))} ${escapeHTML(getNomeCategoria(q.categoria))}</span>
           <span class="quest-xp">+${q.xp} XP</span>
+          ${q.requerFoto ? '<span class="quest-prova-badge" title="Precisa de foto de prova para concluir">📸</span>' : ''}
         </div>
       </div>
       <button class="quest-delete" data-action="delete" data-id="${escapeAttr(q.id)}" aria-label="Excluir quest">🗑️</button>
@@ -957,15 +971,85 @@ function renderConquistas() {
   lista.innerHTML = CONQUISTAS.map(c => {
     const quando = desbloq[c.id];
     const data = quando ? new Date(quando).toLocaleDateString('pt-BR') : '';
+    // T2: recompensa real (se configurada) — visível como meta mesmo antes de desbloquear
+    const r = STATE.recompensas[c.id];
+    const temRecompensa = r && r.texto && r.texto.trim();
     return `
       <div class="conquista-card ${quando ? 'aberta' : 'bloqueada'}">
         <div class="conquista-emoji">${quando ? c.emoji : '🔒'}</div>
         <div class="conquista-nome">${escapeHTML(c.nome)}</div>
         <div class="conquista-desc">${escapeHTML(c.desc)}</div>
         ${quando ? `<div class="conquista-data">✨ ${data}</div>` : ''}
+        ${temRecompensa ? `
+          <div class="conquista-recompensa ${quando && r.resgatado ? 'resgatada' : ''}">
+            🎁 ${escapeHTML(r.texto)}${quando && r.resgatado ? ' ✅' : ''}
+          </div>` : ''}
       </div>`;
   }).join('');
 }
+
+// ═══════════════════════════════════════════════
+// T2: RECOMPENSAS REAIS POR TROFÉU (editável em Config)
+// ═══════════════════════════════════════════════
+function renderRecompensasConfig() {
+  const lista = document.getElementById('recompensas-lista');
+  if (!lista) return;
+  const desbloq = STATE.player.conquistas || {};
+
+  lista.innerHTML = CONQUISTAS.map(c => {
+    const desbloqueada = !!desbloq[c.id];
+    const r = STATE.recompensas[c.id] || { texto: '', resgatado: false };
+    return `
+      <div class="recompensa-item">
+        <div class="recompensa-cabecalho">
+          <span class="recompensa-emoji">${desbloqueada ? c.emoji : '🔒'}</span>
+          <span class="recompensa-nome">${escapeHTML(c.nome)}</span>
+        </div>
+        <input type="text" class="recompensa-input"
+               placeholder="Ex: Jantar romântico, dia de spa..."
+               value="${escapeAttr(r.texto || '')}" maxlength="80"
+               data-action="rec-texto" data-id="${escapeAttr(c.id)}">
+        ${desbloqueada
+          ? `<label class="recompensa-resgate">
+               <input type="checkbox" data-action="rec-resgatado" data-id="${escapeAttr(c.id)}" ${r.resgatado ? 'checked' : ''}>
+               <span>✅ Resgatado</span>
+             </label>`
+          : `<span class="recompensa-bloqueada">🔒 Ainda não desbloqueado</span>`
+        }
+      </div>`;
+  }).join('');
+}
+
+function abrirRecompensas() {
+  const modal = document.getElementById('modal-recompensas');
+  if (!modal) return;
+  renderRecompensasConfig();
+  modal.classList.add('active');
+}
+
+function fecharRecompensas() {
+  document.getElementById('modal-recompensas')?.classList.remove('active');
+  renderConquistas(); // reflete edições na tela de Troféus
+}
+
+document.getElementById('recompensas-lista')?.addEventListener('input', (e) => {
+  const input = e.target.closest('[data-action="rec-texto"]');
+  if (!input) return;
+  const id = input.dataset.id;
+  if (!STATE.recompensas[id]) STATE.recompensas[id] = { texto: '', resgatado: false };
+  STATE.recompensas[id].texto = input.value;
+  salvar();
+});
+
+document.getElementById('recompensas-lista')?.addEventListener('change', (e) => {
+  const chk = e.target.closest('[data-action="rec-resgatado"]');
+  if (!chk) return;
+  const id = chk.dataset.id;
+  if (!STATE.recompensas[id]) STATE.recompensas[id] = { texto: '', resgatado: false };
+  STATE.recompensas[id].resgatado = chk.checked;
+  salvar();
+  mostrarToast(chk.checked ? '✅ Recompensa marcada como resgatada!' : '↩️ Desmarcada');
+});
 
 // ═══════════════════════════════════════════════
 // AÇÕES DE QUEST
@@ -991,6 +1075,11 @@ function atualizarStreak() {
 function toggleQuest(id) {
   const q = STATE.quests.find(x => x.id === id);
   if (!q) return;
+  // T1: quests com "requerFoto" não concluem direto — abrem a câmera de prova primeiro
+  if (!q.done && q.requerFoto) {
+    abrirCameraProva(id);
+    return;
+  }
   if (!q.done) {
     q.done = true;
     q.concluidoEm = Date.now();
@@ -1136,10 +1225,13 @@ function abrirNovaQuest() {
     STATE.modal.categoria = ativas[0].id;
   }
   STATE.modal.xp = 10;
+  STATE.modal.requerFoto = false;
 
   renderCategoriaPicker();
   document.querySelectorAll('.diff-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.xp === '10'));
+  const chkFoto = document.getElementById('quest-requer-foto');
+  if (chkFoto) chkFoto.checked = false;
 
   modal.classList.add('active');
   setTimeout(() => document.getElementById('quest-titulo')?.focus(), 100);
@@ -1158,6 +1250,7 @@ function criarQuest(e) {
   const desc   = document.getElementById('quest-desc').value.trim();
   if (!titulo) return;
 
+  const chkFoto = document.getElementById('quest-requer-foto');
   STATE.quests.unshift({
     id: uid(),
     titulo,
@@ -1165,7 +1258,8 @@ function criarQuest(e) {
     categoria: STATE.modal.categoria,
     xp: STATE.modal.xp,
     done: false,
-    criadoEm: Date.now()
+    criadoEm: Date.now(),
+    requerFoto: !!(chkFoto && chkFoto.checked) // T1: exige foto de prova pra concluir
   });
 
   salvar();
@@ -1192,7 +1286,8 @@ const FECHAR_MODAL = {
   'modal-nova-quest':           fecharNovaQuest,
   'modal-nova-categoria':       fecharNovaCategoria,
   'modal-desativar-categoria':  fecharDesativarCategoria,
-  'modal-gerenciar-categorias': fecharGerenciarCategorias
+  'modal-gerenciar-categorias': fecharGerenciarCategorias,
+  'modal-recompensas':          fecharRecompensas
 };
 
 // Fechar modais clicando no overlay
@@ -1327,6 +1422,113 @@ function cancelarPreview() {
   const img = document.getElementById('preview-img');
   if (img) img.src = '';
   setTimeout(() => abrirEscolha(), 180);
+}
+
+// ═══════════════════════════════════════════════
+// T1: FOTO DE PROVA (concluir quest marcada como "requerFoto")
+// Fluxo separado do OCR: aqui a foto NÃO é enviada pra leitura de texto,
+// só serve pra confirmar a conclusão (+bônus) e oferecer compartilhamento.
+// ═══════════════════════════════════════════════
+function abrirCameraProva(questId) {
+  STATE.provaQuestId = questId;
+  const input = document.getElementById('input-camera-prova');
+  if (!input) {
+    mostrarToast('⚠️ Erro: câmera de prova não encontrada');
+    return;
+  }
+  input.value = '';
+  input.click(); // síncrono — mesma lição do escolherFoto (v15.6)
+}
+
+function aoTirarFotoProva(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    mostrarToast('⚠️ Arquivo não é uma imagem');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    STATE.provaFotoAtual = await comprimirImagem(e.target.result);
+    const img = document.getElementById('prova-preview-img');
+    if (img) img.src = STATE.provaFotoAtual;
+    document.getElementById('preview-prova')?.classList.add('active');
+  };
+  reader.onerror = () => mostrarToast('❌ Erro ao ler a foto');
+  reader.readAsDataURL(file);
+}
+
+function tirarOutraFotoProva() { abrirCameraProva(STATE.provaQuestId); }
+
+function cancelarProva() {
+  document.getElementById('preview-prova')?.classList.remove('active');
+  const img = document.getElementById('prova-preview-img');
+  if (img) img.src = '';
+  STATE.provaFotoAtual = null;
+  STATE.provaQuestId = null;
+}
+
+function confirmarConclusaoComProva() {
+  const q = STATE.quests.find(x => x.id === STATE.provaQuestId);
+  const foto = STATE.provaFotoAtual;
+  if (!q) { cancelarProva(); return; }
+
+  document.getElementById('preview-prova')?.classList.remove('active');
+
+  q.done = true;
+  q.concluidoEm = Date.now();
+  somConcluir();
+  const xpTotal = q.xp + XP_BONUS_FOTO_PROVA;
+  adicionarXP(xpTotal);
+  atualizarStreak();
+  STATE.player.totalConcluidas++;
+  if (q.xp >= 100) STATE.player.epicasConcluidas++;
+  verificarConquistas();
+  mostrarToast(`✨ +${xpTotal} XP (prova enviada)! 📸`);
+
+  salvar();
+  renderStats();
+  renderQuests();
+
+  // Oferece compartilhar a foto (WhatsApp/Email/etc) — não fica salva no app
+  oferecerCompartilharProva(foto, q.titulo);
+
+  STATE.provaFotoAtual = null;
+  STATE.provaQuestId = null;
+  const img = document.getElementById('prova-preview-img');
+  if (img) img.src = '';
+}
+
+function dataURLToBlob(dataURL) {
+  const [header, base64] = dataURL.split(',');
+  const mimeMatch = header.match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binario = atob(base64);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+// Web Share API — abre o menu nativo (WhatsApp, Email, etc.) pra Aline
+// mandar a foto de prova pra Roberta manualmente. Sem backend nenhum.
+async function oferecerCompartilharProva(dataURL, tituloQuest) {
+  if (!dataURL) return;
+  try {
+    const blob = dataURLToBlob(dataURL);
+    const file = new File([blob], `prova-${uid()}.jpg`, { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Prova de quest concluída — DailyRealm',
+        text: `📸 Prova: "${tituloQuest}" concluída! ✨`
+      });
+      return;
+    }
+  } catch (e) {
+    // Usuária cancelou o compartilhamento ou navegador não suporta — sem problema
+    console.warn('[Prova] Compartilhar não concluído:', e);
+  }
+  mostrarToast('📸 Prova registrada! Envie a foto manualmente se quiser compartilhar.');
 }
 
 // ═══════════════════════════════════════════════
@@ -1590,7 +1792,8 @@ function confirmarRevisao() {
       categoria: q.categoria,
       xp: q.xp,
       done: false,
-      criadoEm: Date.now()
+      criadoEm: Date.now(),
+      requerFoto: false
     });
   });
   // T: registra uso do OCR para a conquista "Maga da Câmera"
