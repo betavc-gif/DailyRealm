@@ -13,9 +13,10 @@
 //              v15.4: Sistema de Conquistas/Troféus (13 troféus)
 //              v15.5: Lembretes MVP (períodos + insistência)
 //              v15.6: Fix câmera em celular (click síncrono, sem setTimeout)
+//              v15.7: Toast de erro do OCR visível por 10s (debug em celular)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v15.6';
+const APP_VERSAO = 'v15.7';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -1181,13 +1182,13 @@ document.addEventListener('keydown', (e) => {
 // TOAST
 // ═══════════════════════════════════════════════
 let _toastTimer = null;
-function mostrarToast(msg) {
+function mostrarToast(msg, duracaoMs = 2500) {
   const t = document.getElementById('toast');
   if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
   if (_toastTimer) clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), duracaoMs);
 }
 
 // ═══════════════════════════════════════════════
@@ -1341,7 +1342,8 @@ async function confirmarFoto() {
   } catch (erro) {
     mostrarLoadingOCR(false);
     console.error('[OCR] ❌ Erro:', erro);
-    mostrarToast('❌ Erro ao ler a foto: ' + erro.message);
+    // Erro de OCR fica visível 10s (em vez de 2,5s) — tempo real de dar print no celular
+    mostrarToast('❌ Erro ao ler a foto: ' + erro.message, 10000);
   } finally {
     _ocrEmAndamento = false;
     if (btnConfirmar) btnConfirmar.disabled = false;
