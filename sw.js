@@ -20,9 +20,11 @@
 //              Pendentes/Concluídas que não ocupava a largura toda)
 // v28........: bump forçado pra puxar app.js/style.css v18.1 (recompensa
 //              deixa de ser campo editável — vira texto fixo)
+// v29........: bump forçado pra puxar app.js v18.2 (Maga da Câmera no
+//              topo da lista de troféus)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v28';
+const VERSAO = 'v29';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
