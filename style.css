@@ -1,8 +1,10 @@
 /* ═══════════════════════════════════════════════════════════ */
-/* DailyRealm — style.css   v16                                 */
+/* DailyRealm — style.css   v17                                 */
 /* v15: badge de foto de prova + tela de recompensas por troféu */
 /* v16: botão de foto na revisão OCR + switch padrão nas         */
 /*      recompensas (redesign do rodapé do card)                */
+/* v17: remove filter:grayscale do botão de foto na revisão —    */
+/*      quebrava o emoji 📸 (virava quadrado branco) em Android  */
 /* ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -1404,7 +1406,9 @@ textarea:focus-visible,
 
 .revisao-cat-btn:active { transform: scale(0.92); }
 
-/* T1: botão de exigir foto de prova, item a item, na revisão do OCR */
+/* T1: botão de exigir foto de prova, item a item, na revisão do OCR
+   (sem filter:grayscale — quebra o emoji em alguns Android/Chrome,
+   virando um quadrado branco em vez do 📸) */
 .revisao-foto-btn {
   background: rgba(255,255,255,0.08);
   border: 1px solid var(--cor-borda);
@@ -1414,16 +1418,14 @@ textarea:focus-visible,
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
-  opacity: 0.5;
-  filter: grayscale(1);
+  opacity: 0.55;
 }
 
 .revisao-foto-btn.ativo {
   opacity: 1;
-  filter: none;
   border-color: var(--cor-amarelo);
-  background: rgba(255, 190, 11, 0.12);
-  box-shadow: 0 0 10px rgba(255, 190, 11, 0.25);
+  background: rgba(255, 190, 11, 0.22);
+  box-shadow: 0 0 10px rgba(255, 190, 11, 0.35);
 }
 
 .revisao-foto-btn:active { transform: scale(0.92); }
