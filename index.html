@@ -271,6 +271,19 @@
           </button>
         </div>
 
+        <!-- 🎁 RECOMPENSAS REAIS -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">🎁 Recompensas</div>
+
+          <p class="config-hint">Defina recompensas reais para cada troféu</p>
+
+          <button type="button"
+                  class="btn-add-categoria"
+                  onclick="abrirRecompensas()">
+            🎁 Gerenciar recompensas →
+          </button>
+        </div>
+
         <!-- 🎨 APARÊNCIA E SOM -->
         <div class="config-grupo">
           <div class="config-grupo-titulo">🎨 Aparência</div>
@@ -310,7 +323,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v16.0</span> ⚔️
+          DailyRealm <span id="app-version">v17.0</span> ⚔️
         </p>
       </div>
     </main>
@@ -423,6 +436,17 @@
             </div>
           </div>
 
+          <div class="field">
+            <div class="config-item" style="padding:0; background:transparent; border:none; min-height:0;">
+              <span class="field-label" style="margin:0;">📸 Pedir foto de prova ao concluir</span>
+              <label class="switch">
+                <input type="checkbox" id="quest-requer-foto">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <span class="field-hint" style="margin:0;">Dá +5 XP bônus quando a prova é enviada</span>
+          </div>
+
           <div class="modal-actions">
             <button type="button" class="btn-secondary" onclick="fecharNovaQuest()">Cancelar</button>
             <button type="submit" class="btn-primary">⚔️ Criar Quest</button>
@@ -533,6 +557,24 @@
       </div>
     </div>
 
+    <!-- MODAL RECOMPENSAS POR TROFÉU -->
+    <div class="modal-overlay" id="modal-recompensas" role="dialog" aria-modal="true" aria-labelledby="modal-recompensas-titulo">
+      <div class="modal modal-gerenciar-cat">
+        <header class="modal-header">
+          <h2 id="modal-recompensas-titulo">🎁 Recompensas por Troféu</h2>
+          <button class="modal-close" onclick="fecharRecompensas()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="modal-form">
+          <p class="field-hint">Escreva a recompensa real de cada troféu. Ela aparece na tela de Troféus como meta, mesmo antes de desbloquear.</p>
+          <div class="recompensas-lista" id="recompensas-lista"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn-primary" onclick="fecharRecompensas()">✅ Concluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL DE CONFIRMAÇÃO GENÉRICO (substitui confirm() nativo) -->
     <div class="modal-overlay" id="modal-confirmar" role="dialog" aria-modal="true" aria-labelledby="modal-confirmar-titulo">
       <div class="modal modal-confirmar">
@@ -573,6 +615,29 @@
       </div>
     </div>
 
+    <!-- TELA DE PREVIEW DA FOTO DE PROVA (concluir quest com "requerFoto") -->
+    <div class="preview-overlay" id="preview-prova">
+      <header class="preview-header">
+        <button class="preview-cancel" onclick="cancelarProva()" aria-label="Cancelar">
+          ← Cancelar
+        </button>
+        <span class="preview-titulo">📸 Prova da Quest</span>
+      </header>
+
+      <div class="preview-imagem-wrap">
+        <img id="prova-preview-img" alt="Foto de prova" />
+      </div>
+
+      <div class="preview-acoes">
+        <button class="btn-secondary preview-btn-refazer" onclick="tirarOutraFotoProva()">
+          🔄 Tirar outra
+        </button>
+        <button class="btn-primary preview-btn-confirmar" onclick="confirmarConclusaoComProva()">
+          ✅ Concluir quest
+        </button>
+      </div>
+    </div>
+
     <!-- TELA DE REVISÃO -->
     <div id="tela-revisao" class="tela-revisao">
       <div class="revisao-header">
@@ -595,7 +660,7 @@
       </div>
     </div>
 
-    <!-- Input invisível de câmera -->
+    <!-- Input invisível de câmera (OCR — criar quests por foto) -->
     <input
       type="file"
       id="input-camera"
@@ -603,6 +668,16 @@
       capture="environment"
       style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
       onchange="aoTirarFoto(event)"
+    />
+
+    <!-- Input invisível de câmera (foto de prova ao concluir quest) -->
+    <input
+      type="file"
+      id="input-camera-prova"
+      accept="image/*"
+      capture="environment"
+      style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
+      onchange="aoTirarFotoProva(event)"
     />
 
     <!-- Toast -->
