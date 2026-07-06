@@ -32,9 +32,15 @@
 //                     deixam de ser editáveis dentro do app (texto fixo
 //                     definido pela Roberta, só o "Resgatado" fica ativo)
 //              v18.2: Maga da Câmera movida pro topo da lista de troféus
+//              v18.3: SW força checagem de atualização no load + ao
+//                     voltar pro primeiro plano (Chrome só rechecava
+//                     sozinho a cada ~24h, atrasando o aviso de nova
+//                     versão) | botão "Dúvidas e sugestões" (WhatsApp) |
+//                     remove toggle "Modo escuro" (nunca teve efeito —
+//                     não existia tema claro)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.2';
+const APP_VERSAO = 'v18.3';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -2038,10 +2044,8 @@ function renderConfig() {
   if (inputNome) inputNome.value = STATE.player.nome || '';
 
   const sons = document.getElementById('config-sons');
-  const escuro = document.getElementById('config-escuro');
   const notif = document.getElementById('config-notificacoes');
   if (sons)  sons.checked  = STATE.config.sons;
-  if (escuro) escuro.checked = STATE.config.modoEscuro;
   if (notif) notif.checked = STATE.config.notificacoes && (window.Notification?.permission === 'granted');
 
   // v18: 2 horários por período (manha1/manha2/tarde1/tarde2/noite1/noite2)
@@ -2088,12 +2092,6 @@ function salvarConfigInsistir(valor) {
 function toggleConfigSons(checked) {
   STATE.config.sons = checked;
   salvar();
-}
-
-function toggleConfigEscuro(checked) {
-  STATE.config.modoEscuro = checked;
-  salvar();
-  aplicarTema();
 }
 
 async function toggleConfigNotificacoes(checked) {
@@ -2230,6 +2228,11 @@ if ('serviceWorker' in navigator) {
         swRegistration = reg;
         console.log('[SW] ✅ Registrado:', reg.scope);
 
+        // v18.3: força checagem imediata no registro — o Chrome só
+        // reverifica sozinho a cada ~24h, o que fazia demorar demais
+        // pra a "Nova versão disponível" aparecer depois de um deploy
+        reg.update();
+
         reg.addEventListener('updatefound', () => {
           const novoSW = reg.installing;
           if (!novoSW) return;
@@ -2248,6 +2251,15 @@ if ('serviceWorker' in navigator) {
       if (recarregando) return;
       recarregando = true;
       window.location.reload();
+    });
+
+    // v18.3: revalida sempre que o app volta pro primeiro plano
+    // (ex.: reabrir pelo ícone) — sem isso, o app podia ficar "preso"
+    // numa versão antiga por até 24h mesmo reabrindo várias vezes
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && swRegistration) {
+        swRegistration.update();
+      }
     });
   });
 }
