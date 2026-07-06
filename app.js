@@ -150,6 +150,25 @@ const PLAYER_PADRAO = {
   conquistas: {}            // T: { idConquista: timestampDesbloqueio }
 };
 
+// v18: recompensas reais definidas pela Roberta — servem de valor inicial em
+// qualquer instalação nova (ex.: celular da Aline), mas continuam editáveis
+// depois pela tela de Config → Recompensas. Chaves batem com os ids de CONQUISTAS.
+const RECOMPENSAS_PADRAO = {
+  primeira:  { texto: 'Purê de Batata pro Jantar!', resgatado: false },
+  cinco:     { texto: 'Sairemos para Jantar em um Restaurante da MINHA escolha!', resgatado: false },
+  dez:       { texto: 'Sairemos para jantar em um Restaurante da SUA escolha!', resgatado: false },
+  cinquenta: { texto: 'Programo um dia inteiro de lazer fora de casa!', resgatado: false },
+  cem:       { texto: 'Começo uma série que tu escolher!', resgatado: false },
+  nivel3:    { texto: 'TV da sala e vídeo game são todos teus por 1 dia inteiro!', resgatado: false },
+  nivel5:    { texto: 'Me envia um link da Shopee e eu concluo a compra!', resgatado: false },
+  nivel10:   { texto: 'Me envia um link do Mercado Livre e eu concluo a compra!', resgatado: false },
+  streak3:   { texto: 'Pernoite no 2001!!!', resgatado: false },
+  streak7:   { texto: 'Planejaremos definitivamente uma viagem longa!', resgatado: false },
+  streak30:  { texto: 'Tua pede, eu faço! (modo HOT!)', resgatado: false },
+  foto:      { texto: 'Cozinharei o que você quiser!', resgatado: false },
+  epica:     { texto: 'Sairemos para jantar em um Restaurante da SUA escolha!', resgatado: false }
+};
+
 const CONFIG_PADRAO = {
   sons: true,
   modoEscuro: true,
@@ -190,7 +209,7 @@ const STATE = {
   },
   categorias: lerStorage('dr_categorias', CATEGORIAS_PADRAO),
   // T2: recompensas reais definidas pela Roberta por troféu — { [conquistaId]: { texto, resgatado } }
-  recompensas: lerStorage('dr_recompensas', {}),
+  recompensas: lerStorage('dr_recompensas', { ...RECOMPENSAS_PADRAO }),
   filtroAtivo: 'todas',
   filtroStatus: 'pendentes', // v18: 'pendentes' ou 'concluidas' (não persiste, reseta ao abrir)
   modal: { categoria: 'casa', xp: 10, requerFoto: false },
