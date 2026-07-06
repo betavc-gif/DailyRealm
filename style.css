@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════ */
-/* DailyRealm — style.css   v14                                 */
+/* DailyRealm — style.css   v15                                 */
+/* v15: badge de foto de prova + tela de recompensas por troféu */
 /* ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -1849,4 +1850,107 @@ select option:hover {
   margin-top: 6px;
   color: #FFD700;
   opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════════════
+   T1: BADGE DE FOTO DE PROVA NA QUEST
+   ═══════════════════════════════════════════════ */
+.quest-prova-badge {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════
+   T2: RECOMPENSAS REAIS POR TROFÉU
+   ═══════════════════════════════════════════════ */
+.recompensas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recompensa-item {
+  background: var(--cor-card);
+  border: 1px solid var(--cor-borda);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recompensa-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recompensa-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.recompensa-nome {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--cor-texto);
+}
+
+.recompensa-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.recompensa-input:focus {
+  border-color: var(--cor-amarelo);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
+}
+
+.recompensa-resgate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--cor-texto-2);
+  cursor: pointer;
+}
+
+.recompensa-resgate input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cor-rosa);
+  cursor: pointer;
+}
+
+.recompensa-bloqueada {
+  font-size: 12px;
+  color: var(--cor-texto-3);
+  font-style: italic;
+}
+
+.conquista-recompensa {
+  margin-top: 8px;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  color: var(--cor-amarelo);
+  line-height: 1.3;
+}
+
+.conquista-recompensa.resgatada {
+  background: rgba(76, 175, 80, 0.12);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #8bd18f;
+  text-decoration: line-through;
+  opacity: 0.85;
 }
