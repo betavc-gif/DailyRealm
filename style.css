@@ -1,6 +1,8 @@
 /* ═══════════════════════════════════════════════════════════ */
-/* DailyRealm — style.css   v15                                 */
+/* DailyRealm — style.css   v16                                 */
 /* v15: badge de foto de prova + tela de recompensas por troféu */
+/* v16: botão de foto na revisão OCR + switch padrão nas         */
+/*      recompensas (redesign do rodapé do card)                */
 /* ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -1402,6 +1404,30 @@ textarea:focus-visible,
 
 .revisao-cat-btn:active { transform: scale(0.92); }
 
+/* T1: botão de exigir foto de prova, item a item, na revisão do OCR */
+.revisao-foto-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.revisao-foto-btn.ativo {
+  opacity: 1;
+  filter: none;
+  border-color: var(--cor-amarelo);
+  background: rgba(255, 190, 11, 0.12);
+  box-shadow: 0 0 10px rgba(255, 190, 11, 0.25);
+}
+
+.revisao-foto-btn:active { transform: scale(0.92); }
+
 .revisao-texto {
   flex: 1;
   background: transparent;
@@ -1914,20 +1940,21 @@ select option:hover {
   box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
 }
 
-.recompensa-resgate {
+/* Rodapé do card: usa o mesmo padrão de switch do resto da Config
+   (mesmo componente de "Ativar notificações", "Modo escuro" etc.) */
+.recompensa-rodape {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--cor-texto-2);
-  cursor: pointer;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--cor-borda);
 }
 
-.recompensa-resgate input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--cor-rosa);
-  cursor: pointer;
+.recompensa-status {
+  font-size: 13px;
+  color: var(--cor-texto-2);
+  font-weight: 600;
 }
 
 .recompensa-bloqueada {
