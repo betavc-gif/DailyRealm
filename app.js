@@ -43,9 +43,26 @@
 //                     troféu (tela Troféus) | remove toggle "Perguntar
 //                     horários ao abrir" (nunca teve efeito) | botão
 //                     do tutorial em 1 linha só
+//              v18.5: corte de foto antes do OCR — permite recortar a
+//                     área da lista, excluindo outras anotações do
+//                     planner que não devem virar quest
+//              v18.6: usa agrupamento por parágrafo do Worker OCR v3
+//                     (quando disponível) pra reduzir 1 lembrete de
+//                     2-3 linhas virando quests separadas | encadeia
+//                     junção automática de mais de 2 linhas | botão
+//                     manual "🔗 Unir com a próxima" na revisão
+//              v18.7: revisão do OCR ganha seletor de XP/dificuldade
+//                     por item (igual à criação manual) + ações em
+//                     massa: marcar/desmarcar todas, igualar categoria
+//                     e ligar/desligar foto de prova pra todas de vez
+//              v18.8: card da quest mostra prévia da descrição (antes
+//                     ficava salva mas nunca aparecia) | tocar no card
+//                     abre edição completa (título/desc/categoria/XP/
+//                     foto) — antes só dava pra concluir ou excluir,
+//                     nunca corrigir uma quest já criada
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.4';
+const APP_VERSAO = 'v18.8';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -180,7 +197,7 @@ const RECOMPENSAS_PADRAO = {
   nivel10:   { texto: 'Me envia um link do Mercado Livre e eu concluo a compra!', resgatado: false },
   streak3:   { texto: 'Pernoite no 2001!!!', resgatado: false },
   streak7:   { texto: 'Planejaremos definitivamente uma viagem longa!', resgatado: false },
-  streak30:  { texto: 'Tu pede, eu faço! (modo HOT!)', resgatado: false },
+  streak30:  { texto: 'TU pede, EU faço! (modo HOT!)', resgatado: false },
   foto:      { texto: 'Cozinharei o que você quiser!', resgatado: false },
   epica:     { texto: 'Sairemos para jantar em um Restaurante da SUA escolha!', resgatado: false }
 };
@@ -228,7 +245,7 @@ const STATE = {
   recompensas: lerStorage('dr_recompensas', { ...RECOMPENSAS_PADRAO }),
   filtroAtivo: 'todas',
   filtroStatus: 'pendentes', // v18: 'pendentes' ou 'concluidas' (não persiste, reseta ao abrir)
-  modal: { categoria: 'casa', xp: 10, requerFoto: false },
+  modal: { categoria: 'casa', xp: 10, requerFoto: false, editandoId: null }, // v18.8: editandoId != null = editando quest existente
   fotoAtual: null,
   categoriaParaDesativar: null,
   // T1: foto de prova — quest aguardando confirmação com foto
@@ -997,14 +1014,22 @@ function renderQuestsPendentes(lista, itens) {
   lista.innerHTML = itens.map(renderQuestCard).join('');
 }
 
+// v18.8: prévia curta da descrição no card + card tocável abre edição
+// completa (antes o campo "detalhes" ficava salvo mas nunca aparecia
+// em lugar nenhum, e não dava pra corrigir nada após criar a quest)
 function renderQuestCard(q) {
+  const temDesc = q.desc && q.desc.trim();
+  const previaDesc = temDesc
+    ? (q.desc.length > 60 ? q.desc.trim().slice(0, 60) + '…' : q.desc.trim())
+    : '';
   return `
     <div class="quest-card ${q.done ? 'done' : ''}" data-id="${escapeAttr(q.id)}">
       <button class="quest-check ${q.done ? 'done' : ''}" data-action="toggle" data-id="${escapeAttr(q.id)}" aria-label="${q.done ? 'Desmarcar' : 'Concluir'} quest">
         ${q.done ? '✓' : ''}
       </button>
-      <div class="quest-content">
+      <div class="quest-content" data-action="editar" data-id="${escapeAttr(q.id)}">
         <div class="quest-title-txt">${escapeHTML(q.titulo)}</div>
+        ${temDesc ? `<div class="quest-desc-preview">${escapeHTML(previaDesc)}</div>` : ''}
         <div class="quest-meta">
           <span class="quest-cat-tag">${escapeHTML(getEmojiCategoria(q.categoria))} ${escapeHTML(getNomeCategoria(q.categoria))}</span>
           <span class="quest-xp">+${q.xp} XP</span>
@@ -1395,6 +1420,8 @@ function abrirNovaQuest() {
   const modal = document.getElementById('modal-nova-quest');
   if (!modal) return;
 
+  STATE.modal.editandoId = null;
+
   const ativas = getCategoriasAtivas();
   if (ativas.length > 0) {
     STATE.modal.categoria = ativas[0].id;
@@ -1408,6 +1435,40 @@ function abrirNovaQuest() {
   const chkFoto = document.getElementById('quest-requer-foto');
   if (chkFoto) chkFoto.checked = false;
 
+  document.getElementById('modal-nova-quest-titulo').textContent = '✨ Nova Quest';
+  document.getElementById('btn-salvar-quest').textContent = '⚔️ Criar Quest';
+  document.getElementById('btn-excluir-quest-modal')?.classList.add('oculto');
+
+  modal.classList.add('active');
+  setTimeout(() => document.getElementById('quest-titulo')?.focus(), 100);
+}
+
+// v18.8: reabre o mesmo modal em modo edição — resolve tanto a
+// descrição invisível quanto a impossibilidade de corrigir uma quest
+// já criada (antes só dava pra concluir ou excluir, nunca editar)
+function abrirEditarQuest(id) {
+  const q = STATE.quests.find(x => x.id === id);
+  const modal = document.getElementById('modal-nova-quest');
+  if (!q || !modal) return;
+
+  STATE.modal.editandoId = q.id;
+  STATE.modal.categoria = q.categoria;
+  STATE.modal.xp = q.xp;
+  STATE.modal.requerFoto = !!q.requerFoto;
+
+  document.getElementById('quest-titulo').value = q.titulo;
+  document.getElementById('quest-desc').value = q.desc || '';
+
+  renderCategoriaPicker();
+  document.querySelectorAll('.diff-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.xp, 10) === q.xp));
+  const chkFoto = document.getElementById('quest-requer-foto');
+  if (chkFoto) chkFoto.checked = !!q.requerFoto;
+
+  document.getElementById('modal-nova-quest-titulo').textContent = '✏️ Editar Quest';
+  document.getElementById('btn-salvar-quest').textContent = '💾 Salvar Alterações';
+  document.getElementById('btn-excluir-quest-modal')?.classList.remove('oculto');
+
   modal.classList.add('active');
   setTimeout(() => document.getElementById('quest-titulo')?.focus(), 100);
 }
@@ -1417,6 +1478,7 @@ function fecharNovaQuest() {
   if (!modal) return;
   modal.classList.remove('active');
   document.getElementById('form-nova-quest')?.reset();
+  STATE.modal.editandoId = null;
 }
 
 function criarQuest(e) {
@@ -1426,6 +1488,25 @@ function criarQuest(e) {
   if (!titulo) return;
 
   const chkFoto = document.getElementById('quest-requer-foto');
+  const requerFoto = !!(chkFoto && chkFoto.checked); // T1: exige foto de prova pra concluir
+
+  // v18.8: modo edição — atualiza a quest existente em vez de criar outra
+  if (STATE.modal.editandoId) {
+    const q = STATE.quests.find(x => x.id === STATE.modal.editandoId);
+    if (q) {
+      q.titulo = titulo;
+      q.desc = desc;
+      q.categoria = STATE.modal.categoria;
+      q.xp = STATE.modal.xp;
+      q.requerFoto = requerFoto;
+    }
+    salvar();
+    renderQuests();
+    fecharNovaQuest();
+    mostrarToast('💾 Quest atualizada!');
+    return;
+  }
+
   STATE.quests.unshift({
     id: uid(),
     titulo,
@@ -1434,13 +1515,21 @@ function criarQuest(e) {
     xp: STATE.modal.xp,
     done: false,
     criadoEm: Date.now(),
-    requerFoto: !!(chkFoto && chkFoto.checked) // T1: exige foto de prova pra concluir
+    requerFoto
   });
 
   salvar();
   renderQuests();
   fecharNovaQuest();
   mostrarToast('⚔️ Nova quest criada!');
+}
+
+// v18.8: excluir direto pelo modal de edição (mesmo destino da lixeira do card)
+function excluirQuestDoModal() {
+  if (!STATE.modal.editandoId) return;
+  const id = STATE.modal.editandoId;
+  fecharNovaQuest();
+  deletarQuest(id);
 }
 
 // ═══════════════════════════════════════════════
@@ -1479,6 +1568,7 @@ document.getElementById('quest-list')?.addEventListener('click', (e) => {
   const { action, id } = btn.dataset;
   if (action === 'toggle') toggleQuest(id);
   if (action === 'delete') deletarQuest(id);
+  if (action === 'editar') abrirEditarQuest(id);
 });
 
 // Picker de categorias no modal nova quest — delegação
@@ -1590,13 +1680,172 @@ function abrirPreviewFoto() {
 function fecharPreviewFoto() {
   document.getElementById('preview-foto')?.classList.remove('active');
 }
-function tirarOutraFoto() { abrirCameraFoto(); }
+function tirarOutraFoto() { sairModoCorte(); abrirCameraFoto(); }
 function cancelarPreview() {
+  sairModoCorte();
   fecharPreviewFoto();
   STATE.fotoAtual = null;
   const img = document.getElementById('preview-img');
   if (img) img.src = '';
   setTimeout(() => abrirEscolha(), 180);
+}
+
+// ═══════════════════════════════════════════════
+// v18.5: CORTE DE FOTO — recorta a foto antes de mandar pro OCR.
+// Útil quando o planner tem outras coisas escritas na página que não
+// devem virar quest: cortando fora, sobra menos linha de ruído no OCR.
+// ═══════════════════════════════════════════════
+let _crop = null; // { container, rectEl, imgW, imgH, rect: {x,y,w,h}, modo }
+const CROP_MIN = 40; // tamanho mínimo (px na tela) da área de corte
+
+function _clampCorte(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function entrarModoCorte() {
+  const img = document.getElementById('preview-img');
+  const wrap = document.getElementById('preview-imagem-wrap');
+  if (!img || !wrap || !img.naturalWidth) return;
+
+  const imgRect = img.getBoundingClientRect();
+  const wrapRect = wrap.getBoundingClientRect();
+
+  const container = document.createElement('div');
+  container.className = 'crop-container';
+  container.style.left = (imgRect.left - wrapRect.left) + 'px';
+  container.style.top = (imgRect.top - wrapRect.top) + 'px';
+  container.style.width = imgRect.width + 'px';
+  container.style.height = imgRect.height + 'px';
+
+  const rectEl = document.createElement('div');
+  rectEl.className = 'crop-rect';
+  ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+    const h = document.createElement('div');
+    h.className = `crop-handle ${pos}`;
+    h.dataset.handle = pos;
+    rectEl.appendChild(h);
+  });
+  container.appendChild(rectEl);
+  wrap.appendChild(container);
+
+  const margemX = imgRect.width * 0.1;
+  const margemY = imgRect.height * 0.1;
+
+  _crop = {
+    container,
+    rectEl,
+    imgW: imgRect.width,
+    imgH: imgRect.height,
+    rect: {
+      x: margemX,
+      y: margemY,
+      w: imgRect.width - margemX * 2,
+      h: imgRect.height - margemY * 2
+    },
+    modo: null
+  };
+  _atualizarRectCorte();
+
+  rectEl.addEventListener('pointerdown', _onCropPointerDown);
+
+  document.getElementById('acoes-normais-foto')?.classList.add('oculto');
+  document.getElementById('btn-confirmar-foto')?.classList.add('oculto');
+  document.getElementById('hint-corte')?.classList.remove('oculto');
+  document.getElementById('acoes-corte-foto')?.classList.remove('oculto');
+}
+
+function _atualizarRectCorte() {
+  if (!_crop) return;
+  const { rectEl, rect } = _crop;
+  rectEl.style.left = rect.x + 'px';
+  rectEl.style.top = rect.y + 'px';
+  rectEl.style.width = rect.w + 'px';
+  rectEl.style.height = rect.h + 'px';
+}
+
+function _onCropPointerDown(e) {
+  if (!_crop) return;
+  const handle = e.target.closest('.crop-handle');
+  _crop.modo = handle ? handle.dataset.handle : 'move';
+  _crop.inicioX = e.clientX;
+  _crop.inicioY = e.clientY;
+  _crop.rectInicio = { ..._crop.rect };
+  window.addEventListener('pointermove', _onCropPointerMove);
+  window.addEventListener('pointerup', _onCropPointerUp);
+  e.preventDefault();
+}
+
+function _onCropPointerMove(e) {
+  if (!_crop || !_crop.modo) return;
+  const dx = e.clientX - _crop.inicioX;
+  const dy = e.clientY - _crop.inicioY;
+  const r0 = _crop.rectInicio;
+  let { x, y, w, h } = r0;
+
+  if (_crop.modo === 'move') {
+    x = _clampCorte(r0.x + dx, 0, _crop.imgW - r0.w);
+    y = _clampCorte(r0.y + dy, 0, _crop.imgH - r0.h);
+  } else {
+    if (_crop.modo.includes('n')) {
+      const novoY = _clampCorte(r0.y + dy, 0, r0.y + r0.h - CROP_MIN);
+      h = r0.h - (novoY - r0.y);
+      y = novoY;
+    }
+    if (_crop.modo.includes('s')) {
+      h = _clampCorte(r0.h + dy, CROP_MIN, _crop.imgH - r0.y);
+    }
+    if (_crop.modo.includes('w')) {
+      const novoX = _clampCorte(r0.x + dx, 0, r0.x + r0.w - CROP_MIN);
+      w = r0.w - (novoX - r0.x);
+      x = novoX;
+    }
+    if (_crop.modo.includes('e')) {
+      w = _clampCorte(r0.w + dx, CROP_MIN, _crop.imgW - r0.x);
+    }
+  }
+
+  _crop.rect = { x, y, w, h };
+  _atualizarRectCorte();
+}
+
+function _onCropPointerUp() {
+  if (_crop) _crop.modo = null;
+  window.removeEventListener('pointermove', _onCropPointerMove);
+  window.removeEventListener('pointerup', _onCropPointerUp);
+}
+
+function sairModoCorte() {
+  if (!_crop) return;
+  _crop.container.remove();
+  _crop = null;
+  document.getElementById('acoes-normais-foto')?.classList.remove('oculto');
+  document.getElementById('btn-confirmar-foto')?.classList.remove('oculto');
+  document.getElementById('hint-corte')?.classList.add('oculto');
+  document.getElementById('acoes-corte-foto')?.classList.add('oculto');
+}
+
+function cancelarModoCorte() {
+  sairModoCorte();
+}
+
+async function aplicarCorte() {
+  if (!_crop) return;
+  const img = document.getElementById('preview-img');
+  const escala = img.naturalWidth / _crop.imgW;
+  const sx = _crop.rect.x * escala;
+  const sy = _crop.rect.y * escala;
+  const sw = _crop.rect.w * escala;
+  const sh = _crop.rect.h * escala;
+
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(sw));
+  cv.height = Math.max(1, Math.round(sh));
+  cv.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+  const cortada = await comprimirImagem(cv.toDataURL('image/jpeg', 0.9));
+
+  STATE.fotoAtual = cortada;
+  img.src = cortada;
+
+  sairModoCorte();
+  mostrarToast('✂️ Foto cortada!');
 }
 
 // ═══════════════════════════════════════════════
@@ -1776,7 +2025,13 @@ async function confirmarFoto() {
       setTimeout(() => abrirEscolha(), 500);
       return;
     }
-    const questsDetectadas = parsearTextoOCR(textoBruto);
+    // v18.6: usa os parágrafos do Worker OCR v3 (agrupamento visual do
+    // Google Vision) quando disponíveis — reduz lembretes de 2-3 linhas
+    // virando quests separadas. Se o Worker ainda não foi atualizado,
+    // cai no parser por linha de sempre.
+    const questsDetectadas = Array.isArray(resultado.paragrafos) && resultado.paragrafos.length > 0
+      ? parsearParagrafosOCR(resultado.paragrafos)
+      : parsearTextoOCR(textoBruto);
     if (questsDetectadas.length === 0) {
       mostrarToast('😕 Nenhuma tarefa reconhecida');
       setTimeout(() => abrirEscolha(), 500);
@@ -1811,10 +2066,24 @@ const DICIONARIO_CATEGORIA = {
   pet: ['ração','racao','vermífugo','vermifugo','vet','veterinário','veterinario','gato','gata','cachorro','cão','cao','areia','tosar','tosa']
 };
 
+// v18.6: Worker OCR v3 agrupa por PARÁGRAFO (posição visual, não só
+// quebra de linha) — resolve a maior parte dos casos de 1 lembrete
+// escrito em 2-3 linhas virando quests separadas. Usado quando o
+// Worker já foi atualizado; se não, cai no parser por linha de sempre.
+function parsearParagrafosOCR(paragrafos) {
+  let linhas = paragrafos.map(l => l.trim()).filter(l => l.length > 0);
+  linhas = linhas.filter(linha => !ehLixo(linha));
+  return linhasParaQuests(linhas);
+}
+
 function parsearTextoOCR(textoBruto) {
   let linhas = textoBruto.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
   linhas = linhas.filter(linha => !ehLixo(linha));
   linhas = juntarLinhasQuebradas(linhas);
+  return linhasParaQuests(linhas);
+}
+
+function linhasParaQuests(linhas) {
   linhas = linhas.filter(l => l.length >= 3 && /[a-záéíóúâêôãõç]/i.test(l));
   return linhas.map(linha => ({
     id: uid(),
@@ -1834,16 +2103,22 @@ function ehLixo(linha) {
   return palavras.every(p => LIXO_OCR.includes(p));
 }
 
+// v18.6: encadeia quantas linhas forem necessárias (antes só juntava
+// pares — um lembrete quebrado em 3 linhas virava 2 quests em vez de 1)
 function juntarLinhasQuebradas(linhas) {
   const resultado = [];
-  for (let i = 0; i < linhas.length; i++) {
-    const atual = linhas[i];
-    const proxima = linhas[i + 1];
-    if (proxima && /^[a-záéíóúâêôãõç]/.test(proxima) && !/[.!?;:]$/.test(atual) && atual.length < 40) {
-      resultado.push(atual + ' ' + proxima);
-      i++;
+  let atual = linhas[0];
+  for (let i = 1; i <= linhas.length; i++) {
+    const proxima = linhas[i];
+    const podeContinuar = atual !== undefined && proxima &&
+      /^[a-záéíóúâêôãõç]/.test(proxima) &&
+      !/[.!?;:]$/.test(atual) &&
+      atual.length < 40;
+    if (podeContinuar) {
+      atual = atual + ' ' + proxima;
     } else {
-      resultado.push(atual);
+      if (atual !== undefined) resultado.push(atual);
+      atual = proxima;
     }
   }
   return resultado;
@@ -1871,6 +2146,7 @@ function capitalizarPrimeira(str) {
 // ═══════════════════════════════════════════════
 function abrirRevisao(quests) {
   QUESTS_REVISAO = quests;
+  _massaCatIdx = 0; // v18.7: recomeça o ciclo de "igualar categoria" a cada nova revisão
   renderRevisao();
   document.getElementById('tela-revisao').classList.add('active');
 }
@@ -1881,38 +2157,98 @@ function cancelarRevisao() {
   STATE.fotoAtual = null;
 }
 
+// v18.7: tiers de XP/dificuldade também na revisão do OCR (igual à
+// criação manual) — antes toda quest de foto saía fixa em 10 XP
+const XP_TIERS_REVISAO = [10, 25, 50, 100];
+const XP_EMOJI_REVISAO = { 10: '🟢', 25: '🟡', 50: '🔴', 100: '💎' };
+const XP_NOME_REVISAO = { 10: 'Fácil', 25: 'Médio', 50: 'Difícil', 100: 'Épica' };
+
 function renderRevisao() {
   const lista = document.getElementById('revisao-lista');
   const titulo = document.getElementById('revisao-titulo-txt');
   const btnConfirmar = document.getElementById('btn-confirmar-revisao');
+  const btnMassaSelecionar = document.getElementById('btn-massa-selecionar');
 
   const ativas = QUESTS_REVISAO.filter(q => q.ativa).length;
   titulo.textContent = `✨ Encontrei ${QUESTS_REVISAO.length} quest${QUESTS_REVISAO.length === 1 ? '' : 's'}!`;
   btnConfirmar.textContent = ativas === 0 ? '⚔️ Criar quests' : `⚔️ Criar ${ativas} quest${ativas === 1 ? '' : 's'}`;
   btnConfirmar.disabled = ativas === 0;
 
+  if (btnMassaSelecionar) {
+    const todasAtivas = QUESTS_REVISAO.length > 0 && QUESTS_REVISAO.every(q => q.ativa);
+    btnMassaSelecionar.textContent = todasAtivas ? '⬜ Desmarcar todas' : '☑️ Marcar todas';
+  }
+
   if (QUESTS_REVISAO.length === 0) {
     lista.innerHTML = `<div class="revisao-vazio"><div class="revisao-vazio-icon">😕</div><p>Nenhuma tarefa identificada</p></div>`;
     return;
   }
 
-  lista.innerHTML = QUESTS_REVISAO.map(q => `
+  lista.innerHTML = QUESTS_REVISAO.map((q, i) => `
     <div class="revisao-card ${q.ativa ? '' : 'desativada'}" data-id="${escapeAttr(q.id)}">
-      <button class="revisao-check ${q.ativa ? 'ativa' : ''}" data-action="rev-toggle" data-id="${escapeAttr(q.id)}" aria-label="${q.ativa ? 'Desmarcar' : 'Marcar'}">
-        ${q.ativa ? '✓' : ''}
-      </button>
-      <button class="revisao-cat-btn" data-action="rev-cat" data-id="${escapeAttr(q.id)}" title="Trocar categoria">
-        ${escapeHTML(getEmojiCategoria(q.categoria))}
-      </button>
-      <input type="text" class="revisao-texto" value="${escapeAttr(q.titulo)}"
-             data-action="rev-edit" data-id="${escapeAttr(q.id)}"
-             ${q.ativa ? '' : 'disabled'}>
-      <button class="revisao-foto-btn ${q.requerFoto ? 'ativo' : ''}" data-action="rev-foto" data-id="${escapeAttr(q.id)}" title="Pedir foto de prova ao concluir (+5 XP)" aria-label="Pedir foto de prova ao concluir">
-        📸
-      </button>
-      <button class="revisao-del" data-action="rev-del" data-id="${escapeAttr(q.id)}" title="Excluir" aria-label="Excluir">🗑️</button>
+      <div class="revisao-linha-1">
+        <button class="revisao-check ${q.ativa ? 'ativa' : ''}" data-action="rev-toggle" data-id="${escapeAttr(q.id)}" aria-label="${q.ativa ? 'Desmarcar' : 'Marcar'}">
+          ${q.ativa ? '✓' : ''}
+        </button>
+        <input type="text" class="revisao-texto" value="${escapeAttr(q.titulo)}"
+               data-action="rev-edit" data-id="${escapeAttr(q.id)}"
+               ${q.ativa ? '' : 'disabled'}>
+        <button class="revisao-del" data-action="rev-del" data-id="${escapeAttr(q.id)}" title="Excluir" aria-label="Excluir">🗑️</button>
+      </div>
+      <div class="revisao-linha-2">
+        <button class="revisao-cat-btn" data-action="rev-cat" data-id="${escapeAttr(q.id)}" title="Trocar categoria">
+          ${escapeHTML(getEmojiCategoria(q.categoria))}
+        </button>
+        <button class="revisao-xp-btn" data-action="rev-xp" data-id="${escapeAttr(q.id)}" title="${XP_NOME_REVISAO[q.xp] || 'Fácil'} · +${q.xp} XP">
+          ${XP_EMOJI_REVISAO[q.xp] || '🟢'}
+        </button>
+        <button class="revisao-foto-btn ${q.requerFoto ? 'ativo' : ''}" data-action="rev-foto" data-id="${escapeAttr(q.id)}" title="Pedir foto de prova ao concluir (+5 XP)" aria-label="Pedir foto de prova ao concluir">
+          📸
+        </button>
+        ${i < QUESTS_REVISAO.length - 1 ? `
+          <button class="revisao-unir-btn" data-action="rev-unir" data-id="${escapeAttr(q.id)}" title="Unir esta linha com a próxima (mesmo lembrete quebrado em 2 linhas)">
+            🔗 Unir com a próxima
+          </button>` : ''}
+      </div>
     </div>
   `).join('');
+}
+
+function trocarXPRevisao(id) {
+  const q = QUESTS_REVISAO.find(x => x.id === id);
+  if (!q) return;
+  const idx = XP_TIERS_REVISAO.indexOf(q.xp);
+  q.xp = XP_TIERS_REVISAO[(idx + 1) % XP_TIERS_REVISAO.length];
+  renderRevisao();
+}
+
+// v18.7: ações em massa (topo da tela de revisão)
+function alternarTodasRevisao() {
+  if (QUESTS_REVISAO.length === 0) return;
+  const todasAtivas = QUESTS_REVISAO.every(q => q.ativa);
+  QUESTS_REVISAO.forEach(q => q.ativa = !todasAtivas);
+  renderRevisao();
+}
+
+let _massaCatIdx = 0;
+function aplicarCategoriaTodasRevisao() {
+  const ativasCats = getCategoriasAtivas();
+  const alvo = QUESTS_REVISAO.filter(q => q.ativa);
+  if (ativasCats.length === 0 || alvo.length === 0) return;
+  const cat = ativasCats[_massaCatIdx % ativasCats.length];
+  _massaCatIdx++;
+  alvo.forEach(q => q.categoria = cat.id);
+  renderRevisao();
+  mostrarToast(`🗂️ "${cat.nome}" aplicada em ${alvo.length} quest${alvo.length === 1 ? '' : 's'}`);
+}
+
+function alternarFotoTodasRevisao() {
+  const alvo = QUESTS_REVISAO.filter(q => q.ativa);
+  if (alvo.length === 0) return;
+  const todasComFoto = alvo.every(q => q.requerFoto);
+  alvo.forEach(q => q.requerFoto = !todasComFoto);
+  renderRevisao();
+  mostrarToast(todasComFoto ? '📸 Foto de prova desativada em todas' : '📸 Foto de prova ativada em todas');
 }
 
 function toggleRevisao(id) {
@@ -1951,6 +2287,19 @@ function toggleFotoRevisao(id) {
   renderRevisao();
 }
 
+// v18.6: junta manualmente esta linha com a próxima — pra quando o OCR
+// separa 1 lembrete escrito em várias linhas em 2+ quests
+function unirComProxima(id) {
+  const idx = QUESTS_REVISAO.findIndex(q => q.id === id);
+  if (idx === -1 || idx === QUESTS_REVISAO.length - 1) return;
+  const atual = QUESTS_REVISAO[idx];
+  const proxima = QUESTS_REVISAO[idx + 1];
+  atual.titulo = capitalizarPrimeira(`${atual.titulo.trim()} ${proxima.titulo.trim()}`.trim());
+  QUESTS_REVISAO.splice(idx + 1, 1);
+  renderRevisao();
+  mostrarToast('🔗 Linhas unidas!');
+}
+
 // Delegação na revisão
 document.getElementById('revisao-lista')?.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
@@ -1958,8 +2307,10 @@ document.getElementById('revisao-lista')?.addEventListener('click', (e) => {
   const { action, id } = btn.dataset;
   if (action === 'rev-toggle') toggleRevisao(id);
   if (action === 'rev-cat') trocarCategoriaRevisao(id);
+  if (action === 'rev-xp') trocarXPRevisao(id);
   if (action === 'rev-foto') toggleFotoRevisao(id);
   if (action === 'rev-del') excluirRevisao(id);
+  if (action === 'rev-unir') unirComProxima(id);
 });
 document.getElementById('revisao-lista')?.addEventListener('change', (e) => {
   const input = e.target.closest('[data-action="rev-edit"]');
