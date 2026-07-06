@@ -23,9 +23,13 @@
 //              v17.1: Foto de prova também pode ser exigida em quests
 //                     criadas por OCR (marcação item a item na revisão) |
 //                     redesign das recompensas com switch padrão do app
+//              v18.0: Tutorial completo (automático na 1ª vez + botão de
+//                     ajuda permanente) | Quests concluídas agrupadas por
+//                     semana/mês (evita lista poluída) | 2 lembretes fixos
+//                     por período (manhã/tarde/noite) em vez de 1
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v17.1';
+const APP_VERSAO = 'v18.0';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -150,10 +154,16 @@ const CONFIG_PADRAO = {
   sons: true,
   modoEscuro: true,
   notificacoes: false,
-  horarios: { manha: '08:00', tarde: '13:00', noite: '18:00' },
+  // v18: 2 horários fixos por período (em vez de 1) — reduz risco de perder o aviso
+  horarios: {
+    manha1: '08:00', manha2: '10:30',
+    tarde1: '13:00', tarde2: '16:00',
+    noite1: '19:00', noite2: '21:00'
+  },
   insistirHoras: 2,
   perguntarHorariosAoAbrir: false,
-  moverDiaSeguinte: true
+  moverDiaSeguinte: true,
+  tutorialVisto: false // v18: controla se já mostrou o tutorial automático
 };
 
 // R1: leitura segura do localStorage — dado corrompido nunca derruba o app
@@ -182,6 +192,7 @@ const STATE = {
   // T2: recompensas reais definidas pela Roberta por troféu — { [conquistaId]: { texto, resgatado } }
   recompensas: lerStorage('dr_recompensas', {}),
   filtroAtivo: 'todas',
+  filtroStatus: 'pendentes', // v18: 'pendentes' ou 'concluidas' (não persiste, reseta ao abrir)
   modal: { categoria: 'casa', xp: 10, requerFoto: false },
   fotoAtual: null,
   categoriaParaDesativar: null,
@@ -189,6 +200,10 @@ const STATE = {
   provaFotoAtual: null,
   provaQuestId: null
 };
+
+// v18: migração — remove chaves antigas de 1 horário por período
+// (manha/tarde/noite) que ficaram órfãs em configs salvos antes do v18
+['manha', 'tarde', 'noite'].forEach(k => delete STATE.config.horarios[k]);
 
 // Sanidade: se categorias vier vazio/inválido, restaura padrão
 if (!Array.isArray(STATE.categorias) || STATE.categorias.length === 0) {
@@ -325,7 +340,8 @@ function salvarNomeOnboarding(event) {
   aplicarNomeNaUI();
   document.getElementById('tela-onboarding').classList.remove('active');
   mostrarToast(`👑 Bem-vinda, ${nome}!`);
-  setTimeout(() => pedirPermissaoNotificacao(), 1200);
+  // v18: tutorial completo antes de pedir permissão de notificação
+  setTimeout(() => abrirTutorial(true), 900);
 }
 
 function aplicarNomeNaUI() {
@@ -334,6 +350,91 @@ function aplicarNomeNaUI() {
   });
   const inputConfigNome = document.getElementById('config-nome');
   if (inputConfigNome) inputConfigNome.value = STATE.player.nome || '';
+}
+
+// ═══════════════════════════════════════════════
+// TUTORIAL (v18) — carrossel explicando o app.
+// Mostra sozinho 1x (onboarding novo ou upgrade de quem já usava),
+// e fica sempre disponível via botão "❓ Como funciona" na Config.
+// ═══════════════════════════════════════════════
+const TUTORIAL_SLIDES = [
+  { emoji: '👑', titulo: 'Bem-vinda ao DailyRealm',
+    texto: 'Transforme sua rotina em uma jornada épica! Cada tarefa do dia vira uma "quest" que te dá XP, sobe seu nível e desbloqueia troféus.' },
+  { emoji: '⚔️', titulo: 'Criando suas Quests',
+    texto: 'Toque no botão + na tela de Quests. Você pode criar uma quest manualmente, ou tocar em "Por Foto" e fotografar sua agenda/planner — o app lê e cria as quests sozinho.' },
+  { emoji: '📸', titulo: 'Foto de Prova',
+    texto: 'Algumas quests pedem uma foto pra confirmar que foram feitas de verdade. Ao concluir, a câmera abre; depois é só compartilhar a foto com quem acompanha. Vale +5 XP bônus!' },
+  { emoji: '🔥', titulo: 'XP, Nível e Streak',
+    texto: 'Cada quest concluída dá XP. Ao encher a barra, você sobe de nível. Completar pelo menos 1 quest por dia mantém sua sequência (streak) 🔥.' },
+  { emoji: '🏆', titulo: 'Troféus e Recompensas',
+    texto: 'Na aba Troféus você vê suas conquistas e a recompensa real de cada uma. Ao desbloquear, marque como "Resgatado" quando aproveitar o prêmio de verdade.' },
+  { emoji: '🔔', titulo: 'Lembretes',
+    texto: 'Em Config você define 2 horários por período (manhã/tarde/noite) pra receber lembretes das quests pendentes — funciona até com o app fechado.' },
+  { emoji: '❓', titulo: 'Precisa rever isso depois?',
+    texto: 'Sem problema! Esse tutorial fica sempre disponível em Config → "Como funciona o DailyRealm". Toque em Concluir e bora começar sua jornada! ✨' }
+];
+
+let _tutorialSlideAtual = 0;
+let _tutorialPrimeiraVez = false;
+
+function abrirTutorial(primeiraVez = false) {
+  _tutorialSlideAtual = 0;
+  _tutorialPrimeiraVez = primeiraVez;
+  renderTutorialSlide();
+  document.getElementById('modal-tutorial')?.classList.add('active');
+}
+
+function renderTutorialSlide() {
+  const wrap = document.getElementById('tutorial-slides');
+  const dots = document.getElementById('tutorial-dots');
+  if (!wrap || !dots) return;
+
+  const s = TUTORIAL_SLIDES[_tutorialSlideAtual];
+  wrap.innerHTML = `
+    <div class="tutorial-slide">
+      <div class="tutorial-emoji">${s.emoji}</div>
+      <h3 class="tutorial-titulo">${escapeHTML(s.titulo)}</h3>
+      <p class="tutorial-texto">${escapeHTML(s.texto)}</p>
+    </div>`;
+
+  dots.innerHTML = TUTORIAL_SLIDES.map((_, i) =>
+    `<span class="tutorial-dot ${i === _tutorialSlideAtual ? 'active' : ''}"></span>`
+  ).join('');
+
+  const btnVoltar = document.getElementById('tutorial-btn-voltar');
+  const btnAvancar = document.getElementById('tutorial-btn-avancar');
+  if (btnVoltar) btnVoltar.style.visibility = _tutorialSlideAtual === 0 ? 'hidden' : 'visible';
+  if (btnAvancar) {
+    btnAvancar.textContent = _tutorialSlideAtual === TUTORIAL_SLIDES.length - 1 ? '✅ Concluir' : 'Avançar →';
+  }
+}
+
+function tutorialAvancar() {
+  if (_tutorialSlideAtual < TUTORIAL_SLIDES.length - 1) {
+    _tutorialSlideAtual++;
+    renderTutorialSlide();
+  } else {
+    fecharTutorial();
+  }
+}
+
+function tutorialVoltar() {
+  if (_tutorialSlideAtual > 0) {
+    _tutorialSlideAtual--;
+    renderTutorialSlide();
+  }
+}
+
+function fecharTutorial() {
+  document.getElementById('modal-tutorial')?.classList.remove('active');
+  if (!STATE.config.tutorialVisto) {
+    STATE.config.tutorialVisto = true;
+    salvar();
+  }
+  if (_tutorialPrimeiraVez) {
+    _tutorialPrimeiraVez = false;
+    setTimeout(() => pedirPermissaoNotificacao(), 500);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -823,27 +924,46 @@ function renderStats() {
 // ═══════════════════════════════════════════════
 // RENDER QUESTS
 // ═══════════════════════════════════════════════
+// v18: aba Pendentes (lista aberta) x aba Concluídas (agrupada por
+// semana/mês, pra não poluir a tela com o tempo)
+function mudarStatusQuests(status) {
+  STATE.filtroStatus = status;
+  document.querySelectorAll('.status-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.status === status);
+  });
+  renderQuests();
+}
+
 function renderQuests() {
   const lista = document.getElementById('quest-list');
   if (!lista) return;
 
-  // U5: pendentes primeiro, concluídas no fim (ordem estável dentro de cada grupo)
-  const filtradas = (STATE.filtroAtivo === 'todas'
+  const porCategoria = STATE.filtroAtivo === 'todas'
     ? STATE.quests
-    : STATE.quests.filter(q => q.categoria === STATE.filtroAtivo)
-  ).slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0));
+    : STATE.quests.filter(q => q.categoria === STATE.filtroAtivo);
 
-  if (filtradas.length === 0) {
+  if (STATE.filtroStatus === 'concluidas') {
+    renderQuestsConcluidas(lista, porCategoria.filter(q => q.done));
+  } else {
+    renderQuestsPendentes(lista, porCategoria.filter(q => !q.done));
+  }
+}
+
+function renderQuestsPendentes(lista, itens) {
+  if (itens.length === 0) {
     lista.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📜</div>
-        <p class="empty-title">Nenhuma quest aqui</p>
-        <p class="empty-desc">Toque no botão <strong>+</strong> e crie sua primeira aventura!</p>
+        <p class="empty-title">Nenhuma quest pendente</p>
+        <p class="empty-desc">Toque no botão <strong>+</strong> e crie sua próxima aventura!</p>
       </div>`;
     return;
   }
+  lista.innerHTML = itens.map(renderQuestCard).join('');
+}
 
-  lista.innerHTML = filtradas.map(q => `
+function renderQuestCard(q) {
+  return `
     <div class="quest-card ${q.done ? 'done' : ''}" data-id="${escapeAttr(q.id)}">
       <button class="quest-check ${q.done ? 'done' : ''}" data-action="toggle" data-id="${escapeAttr(q.id)}" aria-label="${q.done ? 'Desmarcar' : 'Concluir'} quest">
         ${q.done ? '✓' : ''}
@@ -857,8 +977,72 @@ function renderQuests() {
         </div>
       </div>
       <button class="quest-delete" data-action="delete" data-id="${escapeAttr(q.id)}" aria-label="Excluir quest">🗑️</button>
-    </div>
-  `).join('');
+    </div>`;
+}
+
+// v18: agrupa concluídas em "Esta semana" + um grupo por mês (mais recente primeiro)
+function renderQuestsConcluidas(lista, itens) {
+  if (itens.length === 0) {
+    lista.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏁</div>
+        <p class="empty-title">Nenhuma quest concluída ainda</p>
+        <p class="empty-desc">Complete quests na aba Pendentes pra vê-las aqui!</p>
+      </div>`;
+    return;
+  }
+
+  const ordenadas = itens.slice().sort((a, b) => (b.concluidoEm || 0) - (a.concluidoEm || 0));
+
+  // Início da semana atual (segunda-feira 00:00)
+  const agora = new Date();
+  const diaSemanaISO = (agora.getDay() + 6) % 7; // 0 = segunda
+  const inicioSemana = new Date(agora);
+  inicioSemana.setHours(0, 0, 0, 0);
+  inicioSemana.setDate(agora.getDate() - diaSemanaISO);
+  const inicioSemanaTs = inicioSemana.getTime();
+
+  const estaSemana = [];
+  const porMes = new Map(); // 'YYYY-MM' -> { label, itens }
+
+  ordenadas.forEach(q => {
+    const ts = q.concluidoEm || 0;
+    if (ts >= inicioSemanaTs) {
+      estaSemana.push(q);
+    } else {
+      const d = new Date(ts);
+      const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!porMes.has(chave)) {
+        const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        porMes.set(chave, { label: label.charAt(0).toUpperCase() + label.slice(1), itens: [] });
+      }
+      porMes.get(chave).itens.push(q);
+    }
+  });
+
+  const gruposMes = [...porMes.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([, v]) => v);
+
+  let html = '';
+  if (estaSemana.length > 0) {
+    html += renderGrupoConcluidas('📅 Esta semana', estaSemana, true);
+  }
+  gruposMes.forEach(g => {
+    html += renderGrupoConcluidas(g.label, g.itens, false);
+  });
+
+  lista.innerHTML = html;
+}
+
+function renderGrupoConcluidas(titulo, itens, aberto) {
+  return `
+    <details class="quest-grupo" ${aberto ? 'open' : ''}>
+      <summary class="quest-grupo-titulo">${escapeHTML(titulo)} <span class="quest-grupo-contagem">${itens.length}</span></summary>
+      <div class="quest-grupo-lista">
+        ${itens.map(renderQuestCard).join('')}
+      </div>
+    </details>`;
 }
 
 // ═══════════════════════════════════════════════
@@ -1293,7 +1477,8 @@ const FECHAR_MODAL = {
   'modal-nova-categoria':       fecharNovaCategoria,
   'modal-desativar-categoria':  fecharDesativarCategoria,
   'modal-gerenciar-categorias': fecharGerenciarCategorias,
-  'modal-recompensas':          fecharRecompensas
+  'modal-recompensas':          fecharRecompensas,
+  'modal-tutorial':             fecharTutorial
 };
 
 // Fechar modais clicando no overlay
@@ -1842,12 +2027,11 @@ function renderConfig() {
   if (escuro) escuro.checked = STATE.config.modoEscuro;
   if (notif) notif.checked = STATE.config.notificacoes && (window.Notification?.permission === 'granted');
 
-  const m = document.getElementById('hora-manha');
-  const t = document.getElementById('hora-tarde');
-  const n = document.getElementById('hora-noite');
-  if (m) m.value = STATE.config.horarios.manha;
-  if (t) t.value = STATE.config.horarios.tarde;
-  if (n) n.value = STATE.config.horarios.noite;
+  // v18: 2 horários por período (manha1/manha2/tarde1/tarde2/noite1/noite2)
+  ['manha1', 'manha2', 'tarde1', 'tarde2', 'noite1', 'noite2'].forEach(k => {
+    const el = document.getElementById('hora-' + k);
+    if (el) el.value = STATE.config.horarios[k] || '';
+  });
 
   const insist = document.getElementById('config-insistir');
   if (insist) insist.value = STATE.config.insistirHoras;
@@ -2096,6 +2280,10 @@ verificarConquistas(); // T: desbloqueia retroativas (ex.: backfill de perfil an
 
 if (!onboardingAtivo) {
   processarShortcuts();
+  // v18: quem já usava o app antes do tutorial existir também vê 1x
+  if (!STATE.config.tutorialVisto) {
+    setTimeout(() => abrirTutorial(true), 700);
+  }
 }
 
 // 🔔 Lembretes: checa ao abrir e a cada minuto com o app aberto
