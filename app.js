@@ -38,9 +38,14 @@
 //                     versão) | botão "Dúvidas e sugestões" (WhatsApp) |
 //                     remove toggle "Modo escuro" (nunca teve efeito —
 //                     não existia tema claro)
+//              v18.4: remove tela "Gerenciar recompensas" de Config —
+//                     marcar "Resgatado" agora é direto no card do
+//                     troféu (tela Troféus) | remove toggle "Perguntar
+//                     horários ao abrir" (nunca teve efeito) | botão
+//                     do tutorial em 1 linha só
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.3';
+const APP_VERSAO = 'v18.4';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -191,7 +196,6 @@ const CONFIG_PADRAO = {
     noite1: '19:00', noite2: '21:00'
   },
   insistirHoras: 2,
-  perguntarHorariosAoAbrir: false,
   moverDiaSeguinte: true,
   tutorialVisto: false // v18: controla se já mostrou o tutorial automático
 };
@@ -1189,7 +1193,7 @@ function renderConquistas() {
   lista.innerHTML = CONQUISTAS.map(c => {
     const quando = desbloq[c.id];
     const data = quando ? new Date(quando).toLocaleDateString('pt-BR') : '';
-    // T2: recompensa real (se configurada) — visível como meta mesmo antes de desbloquear
+    // T2: recompensa real (fixa) — visível como meta mesmo antes de desbloquear
     const r = STATE.recompensas[c.id];
     const temRecompensa = r && r.texto && r.texto.trim();
     return `
@@ -1199,69 +1203,27 @@ function renderConquistas() {
         <div class="conquista-desc">${escapeHTML(c.desc)}</div>
         ${quando ? `<div class="conquista-data">✨ ${data}</div>` : ''}
         ${temRecompensa ? `
-          <div class="conquista-recompensa ${quando && r.resgatado ? 'resgatada' : ''}">
+          <button type="button"
+                  class="conquista-recompensa ${quando && r.resgatado ? 'resgatada' : ''}"
+                  ${quando ? `data-action="toggle-resgatado" data-id="${escapeAttr(c.id)}"` : 'disabled'}>
             🎁 ${escapeHTML(r.texto)}${quando && r.resgatado ? ' ✅' : ''}
-          </div>` : ''}
+          </button>` : ''}
       </div>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════════════
-// T2: RECOMPENSAS REAIS POR TROFÉU
-// v18.1: texto fixo, definido pela Roberta — não é mais editável dentro
-// do app (só o status "Resgatado" pode ser marcado/desmarcado)
-// ═══════════════════════════════════════════════
-function renderRecompensasConfig() {
-  const lista = document.getElementById('recompensas-lista');
-  if (!lista) return;
-  const desbloq = STATE.player.conquistas || {};
-
-  lista.innerHTML = CONQUISTAS.map(c => {
-    const desbloqueada = !!desbloq[c.id];
-    const r = STATE.recompensas[c.id] || { texto: '', resgatado: false };
-    return `
-      <div class="recompensa-item">
-        <div class="recompensa-cabecalho">
-          <span class="recompensa-emoji">${desbloqueada ? c.emoji : '🔒'}</span>
-          <span class="recompensa-nome">${escapeHTML(c.nome)}</span>
-        </div>
-        <div class="recompensa-texto">${r.texto
-          ? escapeHTML(r.texto)
-          : '<span class="recompensa-texto-vazio">Nenhuma recompensa definida</span>'}</div>
-        <div class="recompensa-rodape">
-          ${desbloqueada
-            ? `<span class="recompensa-status">${r.resgatado ? '✅ Resgatado' : 'Marcar como resgatado'}</span>
-               <label class="switch">
-                 <input type="checkbox" data-action="rec-resgatado" data-id="${escapeAttr(c.id)}" ${r.resgatado ? 'checked' : ''}>
-                 <span class="slider"></span>
-               </label>`
-            : `<span class="recompensa-bloqueada">🔒 Desbloqueie o troféu pra poder resgatar</span>`
-          }
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function abrirRecompensas() {
-  const modal = document.getElementById('modal-recompensas');
-  if (!modal) return;
-  renderRecompensasConfig();
-  modal.classList.add('active');
-}
-
-function fecharRecompensas() {
-  document.getElementById('modal-recompensas')?.classList.remove('active');
-  renderConquistas(); // reflete edições na tela de Troféus
-}
-
-document.getElementById('recompensas-lista')?.addEventListener('change', (e) => {
-  const chk = e.target.closest('[data-action="rec-resgatado"]');
-  if (!chk) return;
-  const id = chk.dataset.id;
+// v18.4: recompensa é fixa (definida pela Roberta) — a tela "Gerenciar
+// recompensas" em Config foi removida. Tocar no card da recompensa já
+// desbloqueada (tela Troféus) marca/desmarca como resgatada.
+document.getElementById('conquistas-lista')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action="toggle-resgatado"]');
+  if (!btn) return;
+  const id = btn.dataset.id;
   if (!STATE.recompensas[id]) STATE.recompensas[id] = { texto: '', resgatado: false };
-  STATE.recompensas[id].resgatado = chk.checked;
+  STATE.recompensas[id].resgatado = !STATE.recompensas[id].resgatado;
   salvar();
-  mostrarToast(chk.checked ? '✅ Recompensa marcada como resgatada!' : '↩️ Desmarcada');
+  renderConquistas();
+  mostrarToast(STATE.recompensas[id].resgatado ? '✅ Recompensa marcada como resgatada!' : '↩️ Desmarcada');
 });
 
 // ═══════════════════════════════════════════════
@@ -1500,7 +1462,6 @@ const FECHAR_MODAL = {
   'modal-nova-categoria':       fecharNovaCategoria,
   'modal-desativar-categoria':  fecharDesativarCategoria,
   'modal-gerenciar-categorias': fecharGerenciarCategorias,
-  'modal-recompensas':          fecharRecompensas,
   'modal-tutorial':             fecharTutorial
 };
 
@@ -2057,9 +2018,6 @@ function renderConfig() {
   const insist = document.getElementById('config-insistir');
   if (insist) insist.value = STATE.config.insistirHoras;
 
-  const perg = document.getElementById('config-perguntar-horarios');
-  if (perg) perg.checked = STATE.config.perguntarHorariosAoAbrir;
-
   renderCategoriasConfig();
 }
 
@@ -2104,11 +2062,6 @@ async function toggleConfigNotificacoes(checked) {
     mostrarToast('🔕 Notificações desligadas');
     sincronizarPush(); // avisa o Worker pra parar de mandar (horários vazios)
   }
-}
-
-function toggleConfigPerguntar(checked) {
-  STATE.config.perguntarHorariosAoAbrir = checked;
-  salvar();
 }
 
 // ═══════════════════════════════════════════════
