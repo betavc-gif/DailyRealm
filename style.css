@@ -15,6 +15,14 @@
 /*        desmarca resgatado direto no troféu) | remove estilos  */
 /*        da extinta tela "Gerenciar recompensas" | botão do     */
 /*        tutorial em 1 linha (.btn-add-categoria--compacto)     */
+/* v18.5: corte de foto antes do OCR (.crop-container/.crop-rect/*/
+/*        .crop-handle) | .preview-acoes vira coluna com linhas  */
+/* v18.6: card de revisão do OCR vira 2 linhas + botão            */
+/*        "Unir com a próxima" (.revisao-unir-btn)                */
+/* v18.7: seletor de XP por item (.revisao-xp-btn) + barra de      */
+/*        ações em massa no topo da revisão (.revisao-massa)      */
+/* v18.8: prévia de descrição no card (.quest-desc-preview) +      */
+/*        card tocável (cursor pointer) abre edição completa      */
 /* ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -381,7 +389,9 @@ textarea:focus-visible,
   font-weight: 900;
 }
 
-.quest-content { flex: 1; min-width: 0; }
+.quest-content { flex: 1; min-width: 0; cursor: pointer; }
+
+.quest-content:active { opacity: 0.75; }
 
 .quest-title-txt {
   font-size: 15px;
@@ -390,9 +400,21 @@ textarea:focus-visible,
   margin-bottom: 4px;
 }
 
+/* v18.8: prévia curta da descrição — tocar no card abre a edição completa */
+.quest-desc-preview {
+  font-size: 12px;
+  color: var(--cor-texto-2);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
 .quest-card.done .quest-title-txt {
   text-decoration: line-through;
   color: var(--cor-texto-3);
+}
+
+.quest-card.done .quest-desc-preview {
+  opacity: 0.6;
 }
 
 .quest-meta {
@@ -1200,6 +1222,7 @@ textarea:focus-visible,
 
 .preview-imagem-wrap {
   flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1220,6 +1243,7 @@ textarea:focus-visible,
 
 .preview-acoes {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   padding: 16px 18px 22px;
   border-top: 1px solid var(--cor-borda);
@@ -1227,6 +1251,13 @@ textarea:focus-visible,
   backdrop-filter: blur(8px);
   flex-shrink: 0;
 }
+
+.preview-acoes-linha {
+  display: flex;
+  gap: 10px;
+}
+
+.oculto { display: none !important; }
 
 .preview-btn-refazer,
 .preview-btn-confirmar {
@@ -1255,6 +1286,38 @@ textarea:focus-visible,
 
 .preview-btn-refazer:active,
 .preview-btn-confirmar:active { transform: scale(0.97); }
+
+/* ═══════════════════════════════════════════════
+   v18.5: CORTE DE FOTO (antes de mandar pro OCR)
+   ═══════════════════════════════════════════════ */
+.crop-container {
+  position: absolute;
+  z-index: 5;
+}
+
+.crop-rect {
+  position: absolute;
+  border: 2px dashed var(--cor-amarelo, #FFD700);
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.55);
+  touch-action: none;
+  cursor: move;
+}
+
+.crop-handle {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px;
+  background: var(--cor-amarelo, #FFD700);
+  border: 2px solid #1a1a2e;
+  border-radius: 50%;
+  touch-action: none;
+}
+
+.crop-handle.nw { top: 0;    left: 0;    cursor: nwse-resize; }
+.crop-handle.ne { top: 0;    right: 0;   left: auto; margin-right: -13px; margin-left: 0; cursor: nesw-resize; }
+.crop-handle.sw { bottom: 0; left: 0;    top: auto;  margin-bottom: -13px; margin-top: 0; cursor: nesw-resize; }
+.crop-handle.se { bottom: 0; right: 0;   top: auto; left: auto; margin: -13px; cursor: nwse-resize; }
 
 /* Loading OCR */
 #loading-ocr {
@@ -1375,8 +1438,8 @@ textarea:focus-visible,
 
 .revisao-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   background: var(--cor-card);
   border: 1px solid var(--cor-borda);
   border-radius: 14px;
@@ -1388,6 +1451,79 @@ textarea:focus-visible,
   opacity: 0.4;
   background: rgba(255,255,255,0.02);
 }
+
+/* v18.6: card em 2 linhas — a 1ª mantém check/texto/excluir, a 2ª
+   junta categoria/foto e o novo botão de unir com a próxima linha */
+.revisao-linha-1,
+.revisao-linha-2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.revisao-unir-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-2);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.revisao-unir-btn:active {
+  transform: scale(0.95);
+  border-color: var(--cor-amarelo);
+  color: var(--cor-amarelo);
+}
+
+/* v18.7: ações em massa no topo da revisão do OCR */
+.revisao-massa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 18px 14px;
+}
+
+.revisao-massa-btn {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  padding: 9px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cor-texto-2);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.revisao-massa-btn:active {
+  transform: scale(0.96);
+  border-color: var(--cor-amarelo);
+  color: var(--cor-amarelo);
+}
+
+/* v18.7: seletor de XP/dificuldade por item na revisão do OCR */
+.revisao-xp-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.revisao-xp-btn:active { transform: scale(0.92); }
 
 .revisao-check {
   width: 28px;
