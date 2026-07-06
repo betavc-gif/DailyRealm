@@ -26,10 +26,14 @@
 //              v18.0: Tutorial completo (automático na 1ª vez + botão de
 //                     ajuda permanente) | Quests concluídas agrupadas por
 //                     semana/mês (evita lista poluída) | 2 lembretes fixos
-//                     por período (manhã/tarde/noite) em vez de 1
+//                     por período (manhã/tarde/noite) em vez de 1 |
+//                     recompensas reais pré-preenchidas nos 13 troféus
+//              v18.1: fix .status-toggle sem width:100% | recompensas
+//                     deixam de ser editáveis dentro do app (texto fixo
+//                     definido pela Roberta, só o "Resgatado" fica ativo)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.0';
+const APP_VERSAO = 'v18.1';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -208,7 +212,8 @@ const STATE = {
     horarios: { ...CONFIG_PADRAO.horarios, ...(_cfgSalvo.horarios || {}) }
   },
   categorias: lerStorage('dr_categorias', CATEGORIAS_PADRAO),
-  // T2: recompensas reais definidas pela Roberta por troféu — { [conquistaId]: { texto, resgatado } }
+  // T2: recompensas reais por troféu — { [conquistaId]: { texto, resgatado } }
+  // v18: usa RECOMPENSAS_PADRAO como valor inicial (edições ficam salvas por instalação)
   recompensas: lerStorage('dr_recompensas', { ...RECOMPENSAS_PADRAO }),
   filtroAtivo: 'todas',
   filtroStatus: 'pendentes', // v18: 'pendentes' ou 'concluidas' (não persiste, reseta ao abrir)
@@ -1195,7 +1200,9 @@ function renderConquistas() {
 }
 
 // ═══════════════════════════════════════════════
-// T2: RECOMPENSAS REAIS POR TROFÉU (editável em Config)
+// T2: RECOMPENSAS REAIS POR TROFÉU
+// v18.1: texto fixo, definido pela Roberta — não é mais editável dentro
+// do app (só o status "Resgatado" pode ser marcado/desmarcado)
 // ═══════════════════════════════════════════════
 function renderRecompensasConfig() {
   const lista = document.getElementById('recompensas-lista');
@@ -1211,10 +1218,9 @@ function renderRecompensasConfig() {
           <span class="recompensa-emoji">${desbloqueada ? c.emoji : '🔒'}</span>
           <span class="recompensa-nome">${escapeHTML(c.nome)}</span>
         </div>
-        <input type="text" class="recompensa-input"
-               placeholder="Ex: Jantar romântico, dia de spa..."
-               value="${escapeAttr(r.texto || '')}" maxlength="80"
-               data-action="rec-texto" data-id="${escapeAttr(c.id)}">
+        <div class="recompensa-texto">${r.texto
+          ? escapeHTML(r.texto)
+          : '<span class="recompensa-texto-vazio">Nenhuma recompensa definida</span>'}</div>
         <div class="recompensa-rodape">
           ${desbloqueada
             ? `<span class="recompensa-status">${r.resgatado ? '✅ Resgatado' : 'Marcar como resgatado'}</span>
@@ -1240,15 +1246,6 @@ function fecharRecompensas() {
   document.getElementById('modal-recompensas')?.classList.remove('active');
   renderConquistas(); // reflete edições na tela de Troféus
 }
-
-document.getElementById('recompensas-lista')?.addEventListener('input', (e) => {
-  const input = e.target.closest('[data-action="rec-texto"]');
-  if (!input) return;
-  const id = input.dataset.id;
-  if (!STATE.recompensas[id]) STATE.recompensas[id] = { texto: '', resgatado: false };
-  STATE.recompensas[id].texto = input.value;
-  salvar();
-});
 
 document.getElementById('recompensas-lista')?.addEventListener('change', (e) => {
   const chk = e.target.closest('[data-action="rec-resgatado"]');
