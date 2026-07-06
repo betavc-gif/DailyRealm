@@ -31,9 +31,10 @@
 //              v18.1: fix .status-toggle sem width:100% | recompensas
 //                     deixam de ser editáveis dentro do app (texto fixo
 //                     definido pela Roberta, só o "Resgatado" fica ativo)
+//              v18.2: Maga da Câmera movida pro topo da lista de troféus
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.1';
+const APP_VERSAO = 'v18.2';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -1131,6 +1132,7 @@ function somConquista() {
 // cond() recebe o player e devolve true quando desbloqueia
 // ═══════════════════════════════════════════════
 const CONQUISTAS = [
+  { id: 'foto',      emoji: '📸', nome: 'Maga da Câmera',    desc: 'Crie quests fotografando uma lista', cond: p => p.fotosLidas >= 1 },
   { id: 'primeira',  emoji: '🎯', nome: 'Primeiro Passo',    desc: 'Conclua sua primeira quest',        cond: p => p.totalConcluidas >= 1 },
   { id: 'cinco',     emoji: '⚔️', nome: 'Aventureira',       desc: 'Conclua 5 quests',                  cond: p => p.totalConcluidas >= 5 },
   { id: 'dez',       emoji: '🛡️', nome: 'Guerreira',         desc: 'Conclua 10 quests',                 cond: p => p.totalConcluidas >= 10 },
@@ -1142,7 +1144,6 @@ const CONQUISTAS = [
   { id: 'streak3',   emoji: '🔥', nome: 'Pegando Fogo',      desc: '3 dias seguidos com quest feita',   cond: p => p.streak >= 3 },
   { id: 'streak7',   emoji: '🌋', nome: 'Semana Épica',      desc: '7 dias seguidos com quest feita',   cond: p => p.streak >= 7 },
   { id: 'streak30',  emoji: '☄️', nome: 'Imparável',         desc: '30 dias seguidos com quest feita',  cond: p => p.streak >= 30 },
-  { id: 'foto',      emoji: '📸', nome: 'Maga da Câmera',    desc: 'Crie quests fotografando uma lista', cond: p => p.fotosLidas >= 1 },
   { id: 'epica',     emoji: '💎', nome: 'Caçadora de Épicas', desc: 'Conclua uma quest Épica (100 XP)',  cond: p => p.epicasConcluidas >= 1 }
 ];
 
