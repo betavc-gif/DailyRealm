@@ -215,9 +215,9 @@
           <div class="config-grupo-titulo">❓ Ajuda</div>
           <p class="config-hint">Reveja como o DailyRealm funciona, quantas vezes quiser</p>
           <button type="button"
-                  class="btn-add-categoria"
+                  class="btn-add-categoria btn-add-categoria--compacto"
                   onclick="abrirTutorial(false)">
-            ❓ Como funciona o DailyRealm →
+            ❓ Ver tutorial →
           </button>
 
           <p class="config-hint" style="margin-top:14px;">Encontrou um problema ou tem uma ideia?</p>
@@ -290,15 +290,6 @@
               <option value="4">4 horas</option>
             </select>
           </div>
-
-          <div class="config-item">
-            <span>🌅 Perguntar horários ao abrir</span>
-            <label class="switch">
-              <input type="checkbox" id="config-perguntar-horarios"
-                     onchange="toggleConfigPerguntar(this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
         </div>
 
         <!-- 🗂️ CATEGORIAS -->
@@ -311,19 +302,6 @@
                   class="btn-add-categoria"
                   onclick="abrirGerenciarCategorias()">
             ✏️ Gerenciar categorias →
-          </button>
-        </div>
-
-        <!-- 🎁 RECOMPENSAS REAIS -->
-        <div class="config-grupo">
-          <div class="config-grupo-titulo">🎁 Recompensas</div>
-
-          <p class="config-hint">Defina recompensas reais para cada troféu</p>
-
-          <button type="button"
-                  class="btn-add-categoria"
-                  onclick="abrirRecompensas()">
-            🎁 Gerenciar recompensas →
           </button>
         </div>
 
@@ -357,7 +335,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v18.3</span> ⚔️
+          DailyRealm <span id="app-version">v18.4</span> ⚔️
         </p>
       </div>
     </main>
@@ -586,24 +564,6 @@
             <button type="button" class="btn-primary" id="btn-confirmar-desativar" onclick="confirmarDesativarCategoria()">
               ✅ Mover e desativar
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL RECOMPENSAS POR TROFÉU -->
-    <div class="modal-overlay" id="modal-recompensas" role="dialog" aria-modal="true" aria-labelledby="modal-recompensas-titulo">
-      <div class="modal modal-gerenciar-cat">
-        <header class="modal-header">
-          <h2 id="modal-recompensas-titulo">🎁 Recompensas por Troféu</h2>
-          <button class="modal-close" onclick="fecharRecompensas()" aria-label="Fechar">✕</button>
-        </header>
-
-        <div class="modal-form">
-          <p class="field-hint">Escreva a recompensa real de cada troféu. Ela aparece na tela de Troféus como meta, mesmo antes de desbloquear.</p>
-          <div class="recompensas-lista" id="recompensas-lista"></div>
-          <div class="modal-actions">
-            <button type="button" class="btn-primary" onclick="fecharRecompensas()">✅ Concluir</button>
           </div>
         </div>
       </div>
