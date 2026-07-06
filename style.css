@@ -1,10 +1,12 @@
 /* ═══════════════════════════════════════════════════════════ */
-/* DailyRealm — style.css   v17                                 */
+/* DailyRealm — style.css   v18                                 */
 /* v15: badge de foto de prova + tela de recompensas por troféu */
 /* v16: botão de foto na revisão OCR + switch padrão nas         */
 /*      recompensas (redesign do rodapé do card)                */
 /* v17: remove filter:grayscale do botão de foto na revisão —    */
 /*      quebrava o emoji 📸 (virava quadrado branco) em Android  */
+/* v18: toggle Pendentes/Concluídas + grupos por semana/mês nas  */
+/*      quests | modal de tutorial (carrossel de ajuda)          */
 /* ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -1982,4 +1984,146 @@ select option:hover {
   color: #8bd18f;
   text-decoration: line-through;
   opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════
+   v18: toggle Pendentes / Concluídas
+   ═══════════════════════════════════════════════ */
+.status-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.status-btn {
+  flex: 1;
+  background: var(--cor-card);
+  border: 1.5px solid var(--cor-borda);
+  color: var(--cor-texto-2);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+}
+
+.status-btn.active {
+  background: linear-gradient(90deg, var(--cor-rosa), var(--cor-roxo));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(255, 0, 110, 0.4);
+}
+
+/* v18: grupos de quests concluídas (Esta semana / por mês) */
+.quest-grupo {
+  margin-bottom: 4px;
+}
+
+.quest-grupo-titulo {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cor-texto-2);
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--cor-borda);
+  user-select: none;
+}
+
+.quest-grupo-titulo::-webkit-details-marker { display: none; }
+
+.quest-grupo-titulo::before {
+  content: '▸';
+  color: var(--cor-amarelo);
+  transition: transform 0.2s;
+}
+
+.quest-grupo[open] > .quest-grupo-titulo::before {
+  transform: rotate(90deg);
+}
+
+.quest-grupo-contagem {
+  background: rgba(255,255,255,0.08);
+  color: var(--cor-texto-3);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.quest-grupo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+/* ═══════════════════════════════════════════════
+   v18: modal de tutorial (carrossel de ajuda)
+   ═══════════════════════════════════════════════ */
+.modal-tutorial { max-height: 88vh; }
+
+.tutorial-form { gap: 14px; }
+
+.tutorial-slide {
+  text-align: center;
+  padding: 12px 4px 4px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+
+.tutorial-emoji {
+  font-size: 56px;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+
+.tutorial-titulo {
+  font-size: 19px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.tutorial-texto {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--cor-texto-2);
+  max-width: 320px;
+}
+
+.tutorial-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+
+.tutorial-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cor-borda);
+  transition: all 0.25s ease;
+}
+
+.tutorial-dot.active {
+  background: linear-gradient(90deg, var(--cor-rosa), var(--cor-roxo));
+  width: 22px;
+  border-radius: 5px;
+}
+
+.tutorial-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
 }
