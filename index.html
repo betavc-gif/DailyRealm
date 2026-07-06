@@ -335,7 +335,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v18.4</span> ⚔️
+          DailyRealm <span id="app-version">v18.8</span> ⚔️
         </p>
       </div>
     </main>
@@ -459,9 +459,15 @@
             <span class="field-hint" style="margin:0;">Dá +5 XP bônus quando a prova é enviada</span>
           </div>
 
+          <button type="button" class="btn-reset-progresso oculto" id="btn-excluir-quest-modal"
+                  onclick="excluirQuestDoModal()"
+                  style="width:100%;padding:12px;background:rgba(255,80,80,0.12);color:#ff6b6b;border:1px solid rgba(255,80,80,0.3);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+            🗑️ Excluir esta quest
+          </button>
+
           <div class="modal-actions">
             <button type="button" class="btn-secondary" onclick="fecharNovaQuest()">Cancelar</button>
-            <button type="submit" class="btn-primary">⚔️ Criar Quest</button>
+            <button type="submit" class="btn-primary" id="btn-salvar-quest">⚔️ Criar Quest</button>
           </div>
         </form>
       </div>
@@ -616,17 +622,34 @@
         <span class="preview-titulo">📸 Preview</span>
       </header>
 
-      <div class="preview-imagem-wrap">
+      <div class="preview-imagem-wrap" id="preview-imagem-wrap">
         <img id="preview-img" alt="Preview da foto" />
       </div>
 
       <div class="preview-acoes">
-        <button class="btn-secondary preview-btn-refazer" onclick="tirarOutraFoto()">
-          🔄 Tirar outra
-        </button>
-        <button class="btn-primary preview-btn-confirmar" onclick="confirmarFoto()">
+        <div class="preview-acoes-linha" id="acoes-normais-foto">
+          <button class="btn-secondary preview-btn-refazer" onclick="tirarOutraFoto()">
+            🔄 Tirar outra
+          </button>
+          <button class="btn-secondary preview-btn-cortar" onclick="entrarModoCorte()">
+            ✂️ Cortar
+          </button>
+        </div>
+        <button class="btn-primary preview-btn-confirmar" id="btn-confirmar-foto" onclick="confirmarFoto()">
           ✅ Confirmar e ler
         </button>
+
+        <p class="config-hint oculto" id="hint-corte" style="text-align:center; margin:0 0 4px;">
+          Arraste os cantos pra ajustar a área e toque em "Aplicar corte"
+        </p>
+        <div class="preview-acoes-linha oculto" id="acoes-corte-foto">
+          <button class="btn-secondary" onclick="cancelarModoCorte()">
+            ↩️ Cancelar corte
+          </button>
+          <button class="btn-primary" onclick="aplicarCorte()">
+            ✅ Aplicar corte
+          </button>
+        </div>
       </div>
     </div>
 
@@ -661,6 +684,18 @@
           <h2 id="revisao-titulo-txt">✨ Encontrei 0 quests!</h2>
           <p class="revisao-sub">Revise, edite e confirme</p>
         </div>
+      </div>
+
+      <div class="revisao-massa" id="revisao-massa">
+        <button class="revisao-massa-btn" id="btn-massa-selecionar" onclick="alternarTodasRevisao()">
+          ☑️ Marcar todas
+        </button>
+        <button class="revisao-massa-btn" id="btn-massa-categoria" onclick="aplicarCategoriaTodasRevisao()" title="Aplica a mesma categoria em todas as linhas ativas">
+          🗂️ Igualar categoria
+        </button>
+        <button class="revisao-massa-btn" id="btn-massa-foto" onclick="alternarFotoTodasRevisao()" title="Liga/desliga foto de prova em todas as linhas ativas">
+          📸 Foto p/ todas
+        </button>
       </div>
 
       <div class="revisao-lista" id="revisao-lista"></div>
