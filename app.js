@@ -60,9 +60,15 @@
 //                     abre edição completa (título/desc/categoria/XP/
 //                     foto) — antes só dava pra concluir ou excluir,
 //                     nunca corrigir uma quest já criada
+//              v18.9: troféus repaginados — Aventureira em diante
+//                     também exigem quests concluídas com foto de
+//                     prova (não só volume), e Caçadora de Épicas
+//                     agora exige que a quest Épica tenha foto de
+//                     prova | recompensas atualizadas (Pegando Fogo
+//                     e Caçadora de Épicas trocaram de prêmio)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.8';
+const APP_VERSAO = 'v18.9';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -180,6 +186,9 @@ const PLAYER_PADRAO = {
   totalConcluidas: 0,       // T: total histórico de quests concluídas
   epicasConcluidas: 0,      // T: quests de 100 XP concluídas
   fotosLidas: 0,            // T: listas criadas por foto (OCR)
+  // v18.9: contadores pra troféus que exigem prova real (não só volume)
+  comProvaConcluidas: 0,       // quests concluídas com foto de prova
+  epicasComProvaConcluidas: 0, // quests Épicas (100 XP) concluídas com foto de prova
   conquistas: {}            // T: { idConquista: timestampDesbloqueio }
 };
 
@@ -195,11 +204,11 @@ const RECOMPENSAS_PADRAO = {
   nivel3:    { texto: 'TV da sala e vídeo game são todos teus por 1 dia inteiro!', resgatado: false },
   nivel5:    { texto: 'Me envia um link da Shopee e eu concluo a compra!', resgatado: false },
   nivel10:   { texto: 'Me envia um link do Mercado Livre e eu concluo a compra!', resgatado: false },
-  streak3:   { texto: 'Pernoite no 2001!!!', resgatado: false },
+  streak3:   { texto: 'Sairemos para jantar em um Restaurante da SUA escolha!', resgatado: false },
   streak7:   { texto: 'Planejaremos definitivamente uma viagem longa!', resgatado: false },
-  streak30:  { texto: 'TU pede, EU faço! (modo HOT!)', resgatado: false },
+  streak30:  { texto: 'Tu pede, EU faço! (modo HOT!)', resgatado: false },
   foto:      { texto: 'Cozinharei o que você quiser!', resgatado: false },
-  epica:     { texto: 'Sairemos para jantar em um Restaurante da SUA escolha!', resgatado: false }
+  epica:     { texto: 'Pernoite no 2001!!!', resgatado: false }
 };
 
 const CONFIG_PADRAO = {
@@ -1166,20 +1175,24 @@ function somConquista() {
 // CONQUISTAS (Troféus)
 // cond() recebe o player e devolve true quando desbloqueia
 // ═══════════════════════════════════════════════
+// v18.9: dificuldade repaginada — troféus iniciais continuam fáceis
+// (ganham logo, prendem o jogador), e a partir de "Aventureira" passa a
+// exigir também quests concluídas com foto de prova real, não só volume.
+// Streaks e níveis ficam como estavam (já crescem naturalmente).
 const CONQUISTAS = [
   { id: 'foto',      emoji: '📸', nome: 'Maga da Câmera',    desc: 'Crie quests fotografando uma lista', cond: p => p.fotosLidas >= 1 },
   { id: 'primeira',  emoji: '🎯', nome: 'Primeiro Passo',    desc: 'Conclua sua primeira quest',        cond: p => p.totalConcluidas >= 1 },
-  { id: 'cinco',     emoji: '⚔️', nome: 'Aventureira',       desc: 'Conclua 5 quests',                  cond: p => p.totalConcluidas >= 5 },
-  { id: 'dez',       emoji: '🛡️', nome: 'Guerreira',         desc: 'Conclua 10 quests',                 cond: p => p.totalConcluidas >= 10 },
-  { id: 'cinquenta', emoji: '🏰', nome: 'Heroína do Reino',  desc: 'Conclua 50 quests',                 cond: p => p.totalConcluidas >= 50 },
-  { id: 'cem',       emoji: '👑', nome: 'Lenda Viva',        desc: 'Conclua 100 quests',                cond: p => p.totalConcluidas >= 100 },
+  { id: 'cinco',     emoji: '⚔️', nome: 'Aventureira',       desc: 'Conclua 5 quests, sendo 1 com foto de prova',      cond: p => p.totalConcluidas >= 5 && p.comProvaConcluidas >= 1 },
+  { id: 'dez',       emoji: '🛡️', nome: 'Guerreira',         desc: 'Conclua 10 quests, sendo 2 com foto de prova',     cond: p => p.totalConcluidas >= 10 && p.comProvaConcluidas >= 2 },
+  { id: 'cinquenta', emoji: '🏰', nome: 'Heroína do Reino',  desc: 'Conclua 50 quests, sendo 10 com foto de prova',    cond: p => p.totalConcluidas >= 50 && p.comProvaConcluidas >= 10 },
+  { id: 'cem',       emoji: '👑', nome: 'Lenda Viva',        desc: 'Conclua 100 quests, sendo 25 com foto de prova',   cond: p => p.totalConcluidas >= 100 && p.comProvaConcluidas >= 25 },
   { id: 'nivel3',    emoji: '⭐', nome: 'Em Ascensão',       desc: 'Alcance o nível 3',                 cond: p => p.nivel >= 3 },
   { id: 'nivel5',    emoji: '🌟', nome: 'Estrela do Reino',  desc: 'Alcance o nível 5',                 cond: p => p.nivel >= 5 },
   { id: 'nivel10',   emoji: '💫', nome: 'Suprema',           desc: 'Alcance o nível 10',                cond: p => p.nivel >= 10 },
   { id: 'streak3',   emoji: '🔥', nome: 'Pegando Fogo',      desc: '3 dias seguidos com quest feita',   cond: p => p.streak >= 3 },
   { id: 'streak7',   emoji: '🌋', nome: 'Semana Épica',      desc: '7 dias seguidos com quest feita',   cond: p => p.streak >= 7 },
   { id: 'streak30',  emoji: '☄️', nome: 'Imparável',         desc: '30 dias seguidos com quest feita',  cond: p => p.streak >= 30 },
-  { id: 'epica',     emoji: '💎', nome: 'Caçadora de Épicas', desc: 'Conclua uma quest Épica (100 XP)',  cond: p => p.epicasConcluidas >= 1 }
+  { id: 'epica',     emoji: '💎', nome: 'Caçadora de Épicas', desc: 'Conclua uma quest Épica (100 XP) com foto de prova', cond: p => p.epicasComProvaConcluidas >= 1 }
 ];
 
 function verificarConquistas() {
@@ -1907,6 +1920,10 @@ function confirmarConclusaoComProva() {
   atualizarStreak();
   STATE.player.totalConcluidas++;
   if (q.xp >= 100) STATE.player.epicasConcluidas++;
+  // v18.9: contadores de conclusão COM prova real — usados pelos troféus
+  // mais difíceis (Aventureira em diante e Caçadora de Épicas)
+  STATE.player.comProvaConcluidas++;
+  if (q.xp >= 100) STATE.player.epicasComProvaConcluidas++;
   verificarConquistas();
   mostrarToast(`✨ +${xpTotal} XP (prova enviada)! 📸`);
 
