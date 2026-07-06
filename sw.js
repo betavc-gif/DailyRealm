@@ -22,9 +22,11 @@
 //              deixa de ser campo editável — vira texto fixo)
 // v29........: bump forçado pra puxar app.js v18.2 (Maga da Câmera no
 //              topo da lista de troféus)
+// v30........: bump forçado pra puxar app.js/index.html v18.3 (checagem
+//              de update mais agressiva + botão de WhatsApp)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v29';
+const VERSAO = 'v30';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
