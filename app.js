@@ -20,9 +20,12 @@
 //                     Worker dailyrealm-push + VAPID + Web Push criptografado
 //              v17.0: Foto de prova obrigatória (+5 XP bônus) com botão de
 //                     compartilhar | Recompensas reais editáveis por troféu
+//              v17.1: Foto de prova também pode ser exigida em quests
+//                     criadas por OCR (marcação item a item na revisão) |
+//                     redesign das recompensas com switch padrão do app
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v17.0';
+const APP_VERSAO = 'v17.1';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -264,7 +267,7 @@ function getNomeCategoria(id) {
 
 function gerarIdCategoria(nome) {
   const base = nome.toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
@@ -1009,13 +1012,16 @@ function renderRecompensasConfig() {
                placeholder="Ex: Jantar romântico, dia de spa..."
                value="${escapeAttr(r.texto || '')}" maxlength="80"
                data-action="rec-texto" data-id="${escapeAttr(c.id)}">
-        ${desbloqueada
-          ? `<label class="recompensa-resgate">
-               <input type="checkbox" data-action="rec-resgatado" data-id="${escapeAttr(c.id)}" ${r.resgatado ? 'checked' : ''}>
-               <span>✅ Resgatado</span>
-             </label>`
-          : `<span class="recompensa-bloqueada">🔒 Ainda não desbloqueado</span>`
-        }
+        <div class="recompensa-rodape">
+          ${desbloqueada
+            ? `<span class="recompensa-status">${r.resgatado ? '✅ Resgatado' : 'Marcar como resgatado'}</span>
+               <label class="switch">
+                 <input type="checkbox" data-action="rec-resgatado" data-id="${escapeAttr(c.id)}" ${r.resgatado ? 'checked' : ''}>
+                 <span class="slider"></span>
+               </label>`
+            : `<span class="recompensa-bloqueada">🔒 Desbloqueie o troféu pra poder resgatar</span>`
+          }
+        </div>
       </div>`;
   }).join('');
 }
@@ -1646,7 +1652,8 @@ function parsearTextoOCR(textoBruto) {
     titulo: capitalizarPrimeira(linha),
     categoria: detectarCategoria(linha),
     xp: 10,
-    ativa: true
+    ativa: true,
+    requerFoto: false // T1: pode ser marcada individualmente na tela de revisão
   }));
 }
 
@@ -1731,6 +1738,9 @@ function renderRevisao() {
       <input type="text" class="revisao-texto" value="${escapeAttr(q.titulo)}"
              data-action="rev-edit" data-id="${escapeAttr(q.id)}"
              ${q.ativa ? '' : 'disabled'}>
+      <button class="revisao-foto-btn ${q.requerFoto ? 'ativo' : ''}" data-action="rev-foto" data-id="${escapeAttr(q.id)}" title="Pedir foto de prova ao concluir (+5 XP)" aria-label="Pedir foto de prova ao concluir">
+        📸
+      </button>
       <button class="revisao-del" data-action="rev-del" data-id="${escapeAttr(q.id)}" title="Excluir" aria-label="Excluir">🗑️</button>
     </div>
   `).join('');
@@ -1764,6 +1774,14 @@ function excluirRevisao(id) {
   renderRevisao();
 }
 
+// T1: permite marcar, item por item, quais quests criadas por foto vão exigir prova ao concluir
+function toggleFotoRevisao(id) {
+  const q = QUESTS_REVISAO.find(x => x.id === id);
+  if (!q) return;
+  q.requerFoto = !q.requerFoto;
+  renderRevisao();
+}
+
 // Delegação na revisão
 document.getElementById('revisao-lista')?.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
@@ -1771,6 +1789,7 @@ document.getElementById('revisao-lista')?.addEventListener('click', (e) => {
   const { action, id } = btn.dataset;
   if (action === 'rev-toggle') toggleRevisao(id);
   if (action === 'rev-cat') trocarCategoriaRevisao(id);
+  if (action === 'rev-foto') toggleFotoRevisao(id);
   if (action === 'rev-del') excluirRevisao(id);
 });
 document.getElementById('revisao-lista')?.addEventListener('change', (e) => {
@@ -1793,7 +1812,7 @@ function confirmarRevisao() {
       xp: q.xp,
       done: false,
       criadoEm: Date.now(),
-      requerFoto: false
+      requerFoto: !!q.requerFoto // T1: respeita a marcação individual feita na revisão
     });
   });
   // T: registra uso do OCR para a conquista "Maga da Câmera"
