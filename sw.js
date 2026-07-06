@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // DailyRealm — Service Worker
 // ─────────────────────────────────────────────────────────────
-// Versão.....: v25
+// Versão.....: v26
 // Estratégia.: Network-First para HTML | Cache-First para assets
 // Fallback...: index.html para navegação offline
 // Atualização: Toast no app → postMessage('SKIP_WAITING')
@@ -13,9 +13,12 @@
 //              (foto de prova no fluxo OCR + redesign das recompensas)
 // v25........: bump forçado pra puxar style.css v17 (fix do ícone
 //              de foto na revisão que virava quadrado branco)
+// v26........: bump forçado pra puxar app.js v18.0/index.html/style.css
+//              v18 (tutorial completo + quests agrupadas + 2 lembretes
+//              por período)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v25';
+const VERSAO = 'v26';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
