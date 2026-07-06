@@ -180,7 +180,7 @@ const RECOMPENSAS_PADRAO = {
   nivel10:   { texto: 'Me envia um link do Mercado Livre e eu concluo a compra!', resgatado: false },
   streak3:   { texto: 'Pernoite no 2001!!!', resgatado: false },
   streak7:   { texto: 'Planejaremos definitivamente uma viagem longa!', resgatado: false },
-  streak30:  { texto: 'Tua pede, eu faço! (modo HOT!)', resgatado: false },
+  streak30:  { texto: 'Tu pede, eu faço! (modo HOT!)', resgatado: false },
   foto:      { texto: 'Cozinharei o que você quiser!', resgatado: false },
   epica:     { texto: 'Sairemos para jantar em um Restaurante da SUA escolha!', resgatado: false }
 };
