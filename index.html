@@ -149,6 +149,11 @@
         <p class="subtitle">Conquiste o dia, <span class="user-name">guerreira</span>!</p>
       </header>
 
+      <div class="status-toggle" id="status-toggle">
+        <button class="status-btn active" data-status="pendentes" onclick="mudarStatusQuests('pendentes')">📋 Pendentes</button>
+        <button class="status-btn" data-status="concluidas" onclick="mudarStatusQuests('concluidas')">✅ Concluídas</button>
+      </div>
+
       <div class="filtros" id="filtros-categorias">
         <button class="filtro active" data-cat="todas">✨ Todas</button>
       </div>
@@ -205,6 +210,17 @@
           </div>
         </div>
 
+        <!-- ❓ AJUDA / TUTORIAL -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">❓ Ajuda</div>
+          <p class="config-hint">Reveja como o DailyRealm funciona, quantas vezes quiser</p>
+          <button type="button"
+                  class="btn-add-categoria"
+                  onclick="abrirTutorial(false)">
+            ❓ Como funciona o DailyRealm →
+          </button>
+        </div>
+
         <!-- 🔔 NOTIFICAÇÕES E HORÁRIOS -->
         <div class="config-grupo">
           <div class="config-grupo-titulo">🔔 Lembretes</div>
@@ -218,22 +234,42 @@
             </label>
           </div>
 
+          <p class="config-hint">2 horários por período — se perder o 1º, o 2º ainda avisa</p>
+
           <div class="config-item config-item-input">
-            <label for="hora-manha">🌅 Lembrete manhã</label>
-            <input type="time" id="hora-manha" step="60"
-                   onchange="salvarConfigHorario('manha', this.value)">
+            <label for="hora-manha1">🌅 Lembrete manhã (1º)</label>
+            <input type="time" id="hora-manha1" step="60"
+                   onchange="salvarConfigHorario('manha1', this.value)">
           </div>
 
           <div class="config-item config-item-input">
-            <label for="hora-tarde">☀️ Lembrete tarde</label>
-            <input type="time" id="hora-tarde" step="60"
-                   onchange="salvarConfigHorario('tarde', this.value)">
+            <label for="hora-manha2">🌅 Lembrete manhã (2º)</label>
+            <input type="time" id="hora-manha2" step="60"
+                   onchange="salvarConfigHorario('manha2', this.value)">
           </div>
 
           <div class="config-item config-item-input">
-            <label for="hora-noite">🌙 Lembrete noite</label>
-            <input type="time" id="hora-noite" step="60"
-                   onchange="salvarConfigHorario('noite', this.value)">
+            <label for="hora-tarde1">☀️ Lembrete tarde (1º)</label>
+            <input type="time" id="hora-tarde1" step="60"
+                   onchange="salvarConfigHorario('tarde1', this.value)">
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="hora-tarde2">☀️ Lembrete tarde (2º)</label>
+            <input type="time" id="hora-tarde2" step="60"
+                   onchange="salvarConfigHorario('tarde2', this.value)">
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="hora-noite1">🌙 Lembrete noite (1º)</label>
+            <input type="time" id="hora-noite1" step="60"
+                   onchange="salvarConfigHorario('noite1', this.value)">
+          </div>
+
+          <div class="config-item config-item-input">
+            <label for="hora-noite2">🌙 Lembrete noite (2º)</label>
+            <input type="time" id="hora-noite2" step="60"
+                   onchange="salvarConfigHorario('noite2', this.value)">
           </div>
 
           <div class="config-item config-item-input">
@@ -323,7 +359,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v17.0</span> ⚔️
+          DailyRealm <span id="app-version">v18.0</span> ⚔️
         </p>
       </div>
     </main>
@@ -570,6 +606,27 @@
           <div class="recompensas-lista" id="recompensas-lista"></div>
           <div class="modal-actions">
             <button type="button" class="btn-primary" onclick="fecharRecompensas()">✅ Concluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE TUTORIAL (carrossel de ajuda) -->
+    <div class="modal-overlay" id="modal-tutorial" role="dialog" aria-modal="true" aria-labelledby="modal-tutorial-titulo">
+      <div class="modal modal-tutorial">
+        <header class="modal-header">
+          <h2 id="modal-tutorial-titulo">❓ Como funciona</h2>
+          <button class="modal-close" onclick="fecharTutorial()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="modal-form tutorial-form">
+          <div class="tutorial-slides" id="tutorial-slides"></div>
+
+          <div class="tutorial-dots" id="tutorial-dots"></div>
+
+          <div class="tutorial-nav">
+            <button type="button" class="btn-secondary" id="tutorial-btn-voltar" onclick="tutorialVoltar()">← Voltar</button>
+            <button type="button" class="btn-primary" id="tutorial-btn-avancar" onclick="tutorialAvancar()">Avançar →</button>
           </div>
         </div>
       </div>
