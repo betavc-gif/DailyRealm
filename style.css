@@ -7,6 +7,10 @@
 /*      quebrava o emoji 📸 (virava quadrado branco) em Android  */
 /* v18: toggle Pendentes/Concluídas + grupos por semana/mês nas  */
 /*      quests | modal de tutorial (carrossel de ajuda)          */
+/* v18.1: fix .status-toggle sem width:100% (botões encolhidos   */
+/*        e centralizados em vez de ocupar a linha toda) |       */
+/*        recompensa vira texto fixo (.recompensa-texto) em vez  */
+/*        de input editável                                      */
 /* ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -1926,7 +1930,7 @@ select option:hover {
   color: var(--cor-texto);
 }
 
-.recompensa-input {
+.recompensa-texto {
   width: 100%;
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--cor-borda);
@@ -1934,14 +1938,12 @@ select option:hover {
   padding: 10px 12px;
   color: #fff;
   font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  line-height: 1.4;
 }
 
-.recompensa-input:focus {
-  border-color: var(--cor-amarelo);
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
+.recompensa-texto-vazio {
+  color: var(--cor-texto-3);
+  font-style: italic;
 }
 
 /* Rodapé do card: usa o mesmo padrão de switch do resto da Config
@@ -1991,6 +1993,7 @@ select option:hover {
    ═══════════════════════════════════════════════ */
 .status-toggle {
   display: flex;
+  width: 100%;
   gap: 8px;
   margin-bottom: 12px;
 }
