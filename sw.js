@@ -67,9 +67,12 @@
 // v48........: bump forçado pra puxar app.js/index.html v18.21 (fix: os
 //              2 fluxos de foto perguntam Câmera ou Galeria explicitamente
 //              — Android/Chrome mais novos abriam só a galeria)
+// v49........: bump forçado pra puxar app.js/index.html v18.22 (a escolha
+//              Câmera/Galeria vira popup separado, estilo WhatsApp, em vez
+//              de aparecer direto na tela "Como criar?")
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v48';
+const VERSAO = 'v49';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
