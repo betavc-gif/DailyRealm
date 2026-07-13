@@ -66,9 +66,70 @@
 //                     agora exige que a quest Épica tenha foto de
 //                     prova | recompensas atualizadas (Pegando Fogo
 //                     e Caçadora de Épicas trocaram de prêmio)
+//              v18.10: botão "🔄 Atualizar recompensas" em Config →
+//                     Ajuda — atualiza o texto das recompensas sem
+//                     precisar de console do navegador (preserva os
+//                     "Resgatado" já marcados)
+//              v18.11: IA (Worker dailyrealm-classify) define um TETO de
+//                     XP pela dificuldade real da tarefa — vale tanto na
+//                     quest digitada quanto na revisão do OCR. Só dá pra
+//                     escolher esse XP ou algo mais fácil, nunca mais
+//                     difícil (evita classificar tarefa simples como
+//                     Épica só pra destravar troféu/recompensa rápido).
+//                     Difícil/Épica passam a exigir foto de prova sempre.
+//                     Falha de rede/IA cai em Fácil (10 XP) por segurança.
+//              v18.12: foto de prova/OCR aceita galeria além da câmera |
+//                     4 troféus secretos temáticos (Multitarefa, Madrugadora,
+//                     Coruja, Dia Perfeito) — nome/descrição ocultos até
+//                     desbloquear | backup + sincronização entre aparelhos
+//                     via Worker dailyrealm-backup e frase pessoal (sem
+//                     login) — sincroniza ao abrir o app e a cada save
+//              v18.13: FIX de segurança no teto de XP por IA — antes, se o
+//                     Worker dailyrealm-classify estivesse fora do ar (ou
+//                     ainda não configurado), o app deixava passar qualquer
+//                     XP escolhido sem travar em Fácil. Agora falha de
+//                     rede/IA SEMPRE trava em Fácil (10 XP), tanto na
+//                     criação manual quanto na revisão do OCR | Config
+//                     reorganizada (Nome/Lembretes primeiro, Backup/Ajuda
+//                     no fim) e sem textos redundantes acima dos botões
+//              v18.14: 12 novos troféus — Ritmo de Guerra (streak 14) e
+//                     Domadora de Titãs (5 Épicas c/ prova) visíveis;
+//                     Exploradora, Dia Impecável, Madrugada Profunda,
+//                     Rotina Noturna, Maratonista do Dia, Fúria de Quests,
+//                     Mil e Uma Faces, Camaleoa, Voltei Mais Forte e
+//                     Cúmplices como secretos | recompensa definida pra
+//                     TODOS os troféus secretos (inclusive os 4 do v18.12
+//                     que ainda estavam sem prêmio) | categoria sugerida
+//                     "Casal" (destrava o troféu Cúmplices)
+//              v18.15: Bloco 2 — anti-farm por repetição (XP cai pra 50%/
+//                     25%/10% se o MESMO título for concluído de novo no
+//                     mesmo dia) | streak com "perdão" (1 congelamento por
+//                     mês perdoa 1 dia perdido sem quebrar a sequência) |
+//                     quests recorrentes (toggle "Repetir" diária/semanal
+//                     no modal — ao concluir, a próxima ocorrência aparece
+//                     sozinha em Pendentes)
+//              v18.16: tutorial reescrito explicando todas as novidades
+//                     de v18.11 a v18.15 (IA no XP, galeria, streak com
+//                     perdão, quests recorrentes, troféus secretos,
+//                     backup na nuvem) — reabre sozinho 1x pra quem já
+//                     tinha visto a versão antiga, sem repetir o pedido
+//                     de permissão de notificação
+//              v18.17: tela de Troféus ganha a seção "🎁 Prontas pra
+//                     resgatar" no topo — troféus já desbloqueados com
+//                     recompensa ainda não marcada como resgatada sobem
+//                     pra lá, em vez de ficarem perdidos no meio da grade
+//                     completa (pedido direto da Roberta ao ver o print)
+//              v18.18: FIX — troféu que aparece em "Prontas pra resgatar"
+//                     não aparece mais duplicado lá embaixo em "Demais
+//                     troféus" (cada troféu só existe em 1 lugar na tela)
+//              v18.19: 3 troféus novos (Além da Lenda 200 quests, Imparável
+//                     2.0 streak 60, Data Especial por calendário do casal
+//                     + 4 datas configuráveis em Config); botão de
+//                     compartilhar troféu (menu nativo do celular) no toast
+//                     de desbloqueio e no ícone 📤 de cada troféu no quadro
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.9';
+const APP_VERSAO = 'v18.19';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -85,6 +146,46 @@ let _ocrEmAndamento = false; // N5: proteção contra duplo clique
 // FOTO DE PROVA (conclusão de quests marcadas como "requerFoto")
 // ═══════════════════════════════════════════════
 const XP_BONUS_FOTO_PROVA = 5; // bônus fixo ao concluir com prova, conforme doc mestre
+
+// ═══════════════════════════════════════════════
+// v18.11: CLASSIFICAÇÃO DE DIFICULDADE POR IA (anti-inflação de XP)
+// ─────────────────────────────────────────────
+// A IA (Worker dailyrealm-classify, Groq/Llama) devolve um TETO de XP pela
+// dificuldade real da tarefa. O app NUNCA deixa passar desse teto — só
+// permite escolher esse valor ou algo mais fácil. Isso existe pra impedir
+// que uma tarefa simples seja classificada como Difícil/Épica só pra
+// desbloquear troféus/recompensas mais rápido (a maioria das recompensas
+// depende da Roberta cumprir algo).
+// Qualquer falha (rede fora, Worker fora, resposta inválida) sempre cai
+// no nível mais baixo (Fácil/10 XP, offline:true) — nunca no meio-termo,
+// pra não abrir brecha justamente quando a checagem está indisponível.
+// ═══════════════════════════════════════════════
+const CLASSIFY_WORKER_URL = 'https://dailyrealm-classify.dailyrealm.workers.dev/';
+
+async function classificarQuestIA(titulo, desc) {
+  try {
+    const resp = await fetch(CLASSIFY_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, desc: desc || '' })
+    });
+    const data = await resp.json();
+    if (!data || typeof data.xp !== 'number') throw new Error('resposta inválida da IA');
+    return {
+      xp: data.xp,
+      dificuldade: data.dificuldade || 'FACIL',
+      exigirFoto: !!data.exigirFoto,
+      motivo: data.motivo || '',
+      // O próprio Worker devolve success:false no fallback dele (Groq fora,
+      // chave inválida etc.) — nesse caso trata como "offline" também, já
+      // que o xp:10 devolvido não é uma classificação real da IA.
+      offline: data.success === false
+    };
+  } catch (e) {
+    console.warn('[IA] ⚠️ Falha ao classificar quest, usando Fácil por segurança:', e);
+    return { xp: 10, dificuldade: 'FACIL', exigirFoto: false, motivo: '', offline: true };
+  }
+}
 
 // ═══════════════════════════════════════════════
 // CONFIGURAÇÃO PUSH REAL (funciona com app fechado)
@@ -169,7 +270,8 @@ const SUGESTOES_CATEGORIAS = [
   { id: 'ligacoes',    nome: 'Ligações',    emoji: '📞' },
   { id: 'carro',       nome: 'Carro',       emoji: '🚗' },
   { id: 'agenda',      nome: 'Agenda',      emoji: '📅' },
-  { id: 'pessoal',     nome: 'Pessoal',     emoji: '🌱' }
+  { id: 'pessoal',     nome: 'Pessoal',     emoji: '🌱' },
+  { id: 'casal',       nome: 'Casal',       emoji: '💞' } // v18.14: destrava o troféu secreto Cúmplices
 ];
 
 // ═══════════════════════════════════════════════
@@ -189,6 +291,25 @@ const PLAYER_PADRAO = {
   // v18.9: contadores pra troféus que exigem prova real (não só volume)
   comProvaConcluidas: 0,       // quests concluídas com foto de prova
   epicasComProvaConcluidas: 0, // quests Épicas (100 XP) concluídas com foto de prova
+  // v18.12: flags/contadores pra troféus temáticos secretos
+  completouAntes7h: false,    // alguma quest concluída antes das 7h
+  completouApos23h: false,    // alguma quest concluída depois das 23h
+  categoriasMesmoDiaMax: 0,   // maior nº de categorias diferentes concluídas num mesmo dia
+  diaPerfeitoAlcancado: false, // já zerou a lista de pendentes pelo menos 1 vez
+  // v18.14: contadores/flags pros 12 novos troféus
+  completouEntre0e4h: false,     // alguma quest concluída entre 0h-4h (Madrugada Profunda)
+  vezesApos22h: 0,                // quantas quests já concluídas depois das 22h (Rotina Noturna)
+  maxQuestsDia: 0,                 // recorde de quests concluídas num único dia (Maratonista/Fúria)
+  titulosConcluidos: [],            // títulos únicos já concluídos, normalizados (Mil e Uma Faces/Camaleoa)
+  streakQuebrouEm: null,             // timestamp da última quebra de streak >=3 (Voltei Mais Forte)
+  recuperouStreak: false,             // reconstruiu a streak até >=3 em até 3 dias da quebra
+  concluidasPorCategoria: {},          // { [categoriaId]: total concluído } (ex: troféu Cúmplices)
+  diaImpecavelAlcancado: false,         // zerou a lista E todas exigiam foto de prova
+  // v18.15: streak com "perdão" — 1 congelamento por mês
+  ultimoCongelamentoMes: null,           // 'YYYY-MM' do último mês em que o congelamento foi usado
+  // v18.19: troféu "Data Especial" (calendário do casal)
+  dataEspecialAtingida: false,            // já bateu em alguma data especial configurada, pelo menos 1 vez
+  ultimaChecagemDataEspecial: null,       // toDateString() do último dia já checado (evita reprocessar)
   conquistas: {}            // T: { idConquista: timestampDesbloqueio }
 };
 
@@ -208,7 +329,29 @@ const RECOMPENSAS_PADRAO = {
   streak7:   { texto: 'Planejaremos definitivamente uma viagem longa!', resgatado: false },
   streak30:  { texto: 'Tu pede, EU faço! (modo HOT!)', resgatado: false },
   foto:      { texto: 'Cozinharei o que você quiser!', resgatado: false },
-  epica:     { texto: 'Pernoite no 2001!!!', resgatado: false }
+  epica:     { texto: 'Pernoite no 2001!!!', resgatado: false },
+  // v18.14: os 4 troféus secretos do v18.12 finalmente ganham recompensa
+  variada:     { texto: 'Hoje EU cuido de tudo em casa — você só relaxa', resgatado: false },
+  madrugadora: { texto: 'Café da manhã na cama, do jeito que você gosta', resgatado: false },
+  corujao:     { texto: 'Filme/série até tarde hoje, sem culpa nenhuma', resgatado: false },
+  diaperfeito: { texto: 'Você escolhe o jantar E o programa da noite — dia 100% seu', resgatado: false },
+  // v18.14: recompensas dos 12 troféus novos
+  ritmoguerra:      { texto: 'Passeio surpresa curto, só nós dois', resgatado: false },
+  domadora:         { texto: 'Um presente da sua wishlist, finalmente!', resgatado: false },
+  exploradora:      { texto: 'Flores de surpresa, sem motivo nenhum', resgatado: false },
+  diaimpecavel:     { texto: 'Encontro à luz de velas em casa, só nós dois', resgatado: false },
+  madrugadaprofunda:{ texto: 'Café da manhã na cama + você escolhe a trilha sonora do dia', resgatado: false },
+  rotinanoturna:    { texto: 'Lanche de madrugada por conta da casa, sem pestanejar', resgatado: false },
+  maratonista:      { texto: 'Massagem de 15 minutinhos, sem enrolação', resgatado: false },
+  furia:            { texto: 'Jantar fora, comida que você quiser', resgatado: false },
+  milfaces:         { texto: 'Você manda no programa da noite, sem discussão', resgatado: false },
+  camaleoa:         { texto: 'Day use ou diária romântica — sua escolha', resgatado: false },
+  voltoumaisforte:  { texto: 'Um bilhete escondido de orgulho + um mimo surpresa', resgatado: false },
+  casal10:          { texto: 'Passeio a dois, sem celular, só vocês', resgatado: false },
+  // v18.19: recompensas dos 3 troféus novos — texto é só sugestão, troque quando quiser
+  lendaviva200: { texto: 'Um fim de semana só nosso, sem compromisso nenhum — você escolhe o destino', resgatado: false },
+  imparavel60:  { texto: 'Uma escapada de fim de semana, do jeito que você quiser planejar', resgatado: false },
+  dataespecial: { texto: 'Um mimo especial só porque hoje é um dia nosso', resgatado: false }
 };
 
 const CONFIG_PADRAO = {
@@ -223,7 +366,16 @@ const CONFIG_PADRAO = {
   },
   insistirHoras: 2,
   moverDiaSeguinte: true,
-  tutorialVisto: false // v18: controla se já mostrou o tutorial automático
+  tutorialVisto: false, // v18: controla se já mostrou o tutorial automático
+  tutorialVersaoVista: '', // v18.16: qual TUTORIAL_VERSAO essa pessoa já viu
+  fraseBackup: '', // v18.12: chave pessoal pro backup/sincronização na nuvem
+  // v18.19: datas especiais do casal — disparam o troféu secreto "Data Especial"
+  datasEspeciais: {
+    casamento: '12/07',   // aniversário de casamento (DD/MM)
+    mesversario: '12',    // dia do mês — repete todo mês
+    roberta: '03/09',     // aniversário da Roberta (DD/MM)
+    aline: '28/04'        // aniversário da Aline (DD/MM)
+  }
 };
 
 // R1: leitura segura do localStorage — dado corrompido nunca derruba o app
@@ -246,7 +398,9 @@ const STATE = {
   config: {
     ...CONFIG_PADRAO,
     ..._cfgSalvo,
-    horarios: { ...CONFIG_PADRAO.horarios, ...(_cfgSalvo.horarios || {}) }
+    horarios: { ...CONFIG_PADRAO.horarios, ...(_cfgSalvo.horarios || {}) },
+    // v18.19: merge profundo — instalação antiga sem essa chave não perde os padrões
+    datasEspeciais: { ...CONFIG_PADRAO.datasEspeciais, ...(_cfgSalvo.datasEspeciais || {}) }
   },
   categorias: lerStorage('dr_categorias', CATEGORIAS_PADRAO),
   // T2: recompensas reais por troféu — { [conquistaId]: { texto, resgatado } }
@@ -254,7 +408,7 @@ const STATE = {
   recompensas: lerStorage('dr_recompensas', { ...RECOMPENSAS_PADRAO }),
   filtroAtivo: 'todas',
   filtroStatus: 'pendentes', // v18: 'pendentes' ou 'concluidas' (não persiste, reseta ao abrir)
-  modal: { categoria: 'casa', xp: 10, requerFoto: false, editandoId: null }, // v18.8: editandoId != null = editando quest existente
+  modal: { categoria: 'casa', xp: 10, requerFoto: false, editandoId: null, recorrente: null }, // v18.8: editandoId != null = editando quest existente | v18.15: recorrente = { frequencia }
   fotoAtual: null,
   categoriaParaDesativar: null,
   // T1: foto de prova — quest aguardando confirmação com foto
@@ -300,6 +454,10 @@ function _salvarImediato() {
     localStorage.setItem('dr_config', JSON.stringify(STATE.config));
     localStorage.setItem('dr_categorias', JSON.stringify(STATE.categorias));
     localStorage.setItem('dr_recompensas', JSON.stringify(STATE.recompensas));
+    // v18.12: carimba o momento da mudança local e agenda envio pra nuvem
+    _ultimaModificacaoLocal = Date.now();
+    localStorage.setItem('dr_ultima_mod', String(_ultimaModificacaoLocal));
+    agendarPushNuvem();
   } catch (e) {
     console.error('[Storage] ❌ Falha ao salvar:', e);
     mostrarToast('⚠️ Erro ao salvar dados');
@@ -311,6 +469,112 @@ window.addEventListener('beforeunload', () => {
     _salvarImediato();
   }
 });
+
+// ═══════════════════════════════════════════════
+// v18.12: BACKUP + SINCRONIZAÇÃO ENTRE APARELHOS
+// ─────────────────────────────────────────────
+// Guarda uma cópia completa do jogo na nuvem (Worker dailyrealm-backup),
+// identificada por uma "frase" pessoal (NÃO é login/senha — só uma chave
+// de gaveta, sem cadastro). Ao abrir o app, puxa a versão mais recente da
+// nuvem (se for mais nova que a local). A cada salvamento local, envia
+// uma cópia pra nuvem (debounced). Serve tanto de backup (recuperar dados
+// perdidos) quanto de sincronização entre 2 aparelhos (tablet + celular).
+// Sem frase configurada, essa seção inteira fica inerte (opt-in).
+// ═══════════════════════════════════════════════
+const BACKUP_WORKER_URL = 'https://dailyrealm-backup.dailyrealm.workers.dev/';
+let _ultimaModificacaoLocal = Number(lerStorage('dr_ultima_mod', 0)) || 0;
+let _syncEmAndamento = false;
+let _syncPushTimer = null;
+
+function _pacoteBackup() {
+  return {
+    quests: STATE.quests,
+    player: STATE.player,
+    config: STATE.config,
+    categorias: STATE.categorias,
+    recompensas: STATE.recompensas
+  };
+}
+
+async function enviarBackupNuvem() {
+  const frase = (STATE.config.fraseBackup || '').trim();
+  if (!frase) return;
+  try {
+    await fetch(BACKUP_WORKER_URL + 'salvar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frase, dados: _pacoteBackup(), timestamp: _ultimaModificacaoLocal })
+    });
+  } catch (e) {
+    console.warn('[Backup] ⚠️ Falha ao enviar backup:', e);
+  }
+}
+
+// Chamado sempre que algo é salvo localmente — manda pra nuvem com uma
+// folga (debounce), pra não disparar 1 request a cada pequena mudança
+function agendarPushNuvem() {
+  if (!(STATE.config.fraseBackup || '').trim()) return;
+  if (_syncPushTimer) clearTimeout(_syncPushTimer);
+  _syncPushTimer = setTimeout(enviarBackupNuvem, 4000);
+}
+
+// Aplica um pacote vindo da nuvem por cima do estado local — usado tanto
+// na sincronização automática quanto na restauração manual (onboarding)
+function aplicarDadosRemotos(dados, timestamp) {
+  if (!dados) return;
+  STATE.quests = Array.isArray(dados.quests) ? dados.quests : STATE.quests;
+  STATE.player = { ...PLAYER_PADRAO, ...(dados.player || {}) };
+  STATE.config = {
+    ...CONFIG_PADRAO,
+    ...(dados.config || {}),
+    horarios: { ...CONFIG_PADRAO.horarios, ...((dados.config || {}).horarios || {}) },
+    datasEspeciais: { ...CONFIG_PADRAO.datasEspeciais, ...((dados.config || {}).datasEspeciais || {}) }
+  };
+  STATE.categorias = Array.isArray(dados.categorias) && dados.categorias.length > 0 ? dados.categorias : STATE.categorias;
+  STATE.recompensas = { ...RECOMPENSAS_PADRAO, ...(dados.recompensas || {}) };
+
+  _ultimaModificacaoLocal = timestamp || Date.now();
+  try { localStorage.setItem('dr_ultima_mod', String(_ultimaModificacaoLocal)); } catch (e) {}
+  _salvarImediato();
+
+  aplicarNomeNaUI();
+  renderStats();
+  renderCategoriasConfig();
+  renderFiltrosCategorias();
+  renderQuests();
+  renderConquistas();
+  renderConfig();
+}
+
+// Busca a versão mais recente da nuvem. Se for mais nova que a local,
+// substitui os dados locais. Senão, envia a local pra nuvem (garante que
+// a nuvem sempre reflita o aparelho usado mais recentemente).
+async function sincronizarComNuvem({ silencioso = true } = {}) {
+  const frase = (STATE.config.fraseBackup || '').trim();
+  if (!frase || _syncEmAndamento) return;
+  _syncEmAndamento = true;
+  try {
+    const resp = await fetch(BACKUP_WORKER_URL + 'carregar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frase })
+    });
+    const data = await resp.json();
+
+    if (data && data.encontrado && data.timestamp > _ultimaModificacaoLocal) {
+      aplicarDadosRemotos(data.dados, data.timestamp);
+      mostrarToast('☁️ Dados atualizados a partir da nuvem!');
+    } else {
+      await enviarBackupNuvem();
+      if (!silencioso) mostrarToast('☁️ Sincronizado!');
+    }
+  } catch (e) {
+    console.warn('[Backup] ⚠️ Falha ao sincronizar:', e);
+    if (!silencioso) mostrarToast('⚠️ Não consegui sincronizar agora — verifique a internet');
+  } finally {
+    _syncEmAndamento = false;
+  }
+}
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -405,6 +669,52 @@ function salvarNomeOnboarding(event) {
   setTimeout(() => abrirTutorial(true), 900);
 }
 
+// v18.12: restaurar dados de outro aparelho (backup/sincronização) direto
+// da tela de onboarding — evita ter que criar um perfil novo do zero
+function mostrarRestaurarOnboarding() {
+  document.getElementById('btn-mostrar-restaurar')?.classList.add('oculto');
+  document.getElementById('form-restaurar-onboarding')?.classList.remove('oculto');
+  setTimeout(() => document.getElementById('onboarding-frase-restaurar')?.focus(), 100);
+}
+
+async function restaurarBackupOnboarding(event) {
+  event.preventDefault();
+  const input = document.getElementById('onboarding-frase-restaurar');
+  const frase = (input?.value || '').trim();
+  if (!frase) {
+    mostrarToast('⚠️ Digite a frase de backup do outro aparelho');
+    return;
+  }
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  const rotuloOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '☁️ Procurando...'; }
+
+  try {
+    const resp = await fetch(BACKUP_WORKER_URL + 'carregar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frase })
+    });
+    const data = await resp.json();
+
+    if (!data || !data.encontrado) {
+      mostrarToast('😕 Nenhum backup encontrado com essa frase');
+      if (btn) { btn.disabled = false; btn.textContent = rotuloOriginal; }
+      return;
+    }
+
+    aplicarDadosRemotos(data.dados, data.timestamp);
+    STATE.config.fraseBackup = frase; // mantém a mesma frase pra continuar sincronizando
+    salvar();
+    document.getElementById('tela-onboarding')?.classList.remove('active');
+    mostrarToast('✅ Dados restaurados com sucesso!');
+  } catch (e) {
+    mostrarToast('⚠️ Não consegui buscar o backup agora. Verifique a internet e tente de novo.');
+    if (btn) { btn.disabled = false; btn.textContent = rotuloOriginal; }
+  }
+}
+
 function aplicarNomeNaUI() {
   document.querySelectorAll('.user-name').forEach(el => {
     el.textContent = STATE.player.nome || 'Guerreira';
@@ -415,20 +725,34 @@ function aplicarNomeNaUI() {
 
 // ═══════════════════════════════════════════════
 // TUTORIAL (v18) — carrossel explicando o app.
-// Mostra sozinho 1x (onboarding novo ou upgrade de quem já usava),
-// e fica sempre disponível via botão "❓ Como funciona" na Config.
+// Mostra sozinho 1x (onboarding novo ou upgrade de quem já usava), e
+// também 1x sempre que o CONTEÚDO do tutorial mudar (ver TUTORIAL_VERSAO
+// e config.tutorialVersaoVista lá no INIT) — assim ninguém perde as
+// novidades de versões novas. Fica sempre disponível via botão
+// "❓ Como funciona" na Config também.
+// v18.16: reescrito pra explicar IA no XP, galeria, streak com perdão,
+// quests recorrentes, troféus secretos e backup na nuvem.
 // ═══════════════════════════════════════════════
+const TUTORIAL_VERSAO = 'v18.16';
 const TUTORIAL_SLIDES = [
   { emoji: '👑', titulo: 'Bem-vinda ao DailyRealm',
     texto: 'Transforme sua rotina em uma jornada épica! Cada tarefa do dia vira uma "quest" que te dá XP, sobe seu nível e desbloqueia troféus.' },
   { emoji: '⚔️', titulo: 'Criando suas Quests',
-    texto: 'Toque no botão + na tela de Quests. Você pode criar uma quest manualmente, ou tocar em "Por Foto" e fotografar sua agenda/planner — o app lê e cria as quests sozinho.' },
+    texto: 'Toque no botão + na tela de Quests. Você pode criar uma quest manualmente, ou tocar em "Por Foto" e fotografar (ou escolher da galeria) sua agenda/planner — o app lê e cria as quests sozinho.' },
+  { emoji: '🤖', titulo: 'A IA cuida do XP por você',
+    texto: 'Ao criar uma quest, uma IA avalia a dificuldade real da tarefa e define um teto de XP — você só pode escolher esse valor ou algo mais fácil, nunca mais difícil do que realmente é. Tarefas Difíceis/Épicas sempre pedem foto de prova.' },
   { emoji: '📸', titulo: 'Foto de Prova',
-    texto: 'Algumas quests pedem uma foto pra confirmar que foram feitas de verdade. Ao concluir, a câmera abre; depois é só compartilhar a foto com quem acompanha. Vale +5 XP bônus!' },
+    texto: 'Algumas quests pedem uma foto pra confirmar que foram feitas de verdade — pela câmera ou da galeria. Ao concluir, é só escolher a foto e compartilhar com quem acompanha. Vale +5 XP bônus!' },
   { emoji: '🔥', titulo: 'XP, Nível e Streak',
     texto: 'Cada quest concluída dá XP. Ao encher a barra, você sobe de nível. Completar pelo menos 1 quest por dia mantém sua sequência (streak) 🔥.' },
+  { emoji: '🛡️', titulo: 'Streak com perdão',
+    texto: 'Perdeu 1 dia sem querer? Sem drama: 1 vez por mês, a sequência é perdoada automaticamente — você nem precisa pedir nada. Só não cobre 2 dias seguidos perdidos.' },
+  { emoji: '🔁', titulo: 'Quests que se repetem sozinhas',
+    texto: 'Pra tarefas de rotina (remédio, arrumar a cama...), ative "🔁 Repetir" ao criar a quest. Ao concluir, a próxima já aparece pronta em Pendentes. E pra ninguém "inflar" XP fazendo a mesma coisa várias vezes no dia, repetir o mesmo título dá cada vez menos XP.' },
   { emoji: '🏆', titulo: 'Troféus e Recompensas',
-    texto: 'Na aba Troféus você vê suas conquistas e a recompensa real de cada uma. Ao desbloquear, marque como "Resgatado" quando aproveitar o prêmio de verdade.' },
+    texto: 'Na aba Troféus você vê suas conquistas e a recompensa real de cada uma. Alguns troféus são secretos (aparecem como "❓" até você desbloquear sem querer) — pura surpresa! Ao desbloquear, marque como "Resgatado" quando aproveitar o prêmio de verdade.' },
+  { emoji: '☁️', titulo: 'Backup na nuvem',
+    texto: 'Em Config você pode criar uma frase pessoal de backup — sem login, sem senha. Ela guarda seu progresso na nuvem e sincroniza sozinha entre aparelhos (ex: celular e tablet). Ótimo se trocar de aparelho ou limpar o cache sem querer.' },
   { emoji: '🔔', titulo: 'Lembretes',
     texto: 'Em Config você define 2 horários por período (manhã/tarde/noite) pra receber lembretes das quests pendentes — funciona até com o app fechado.' },
   { emoji: '❓', titulo: 'Precisa rever isso depois?',
@@ -488,8 +812,9 @@ function tutorialVoltar() {
 
 function fecharTutorial() {
   document.getElementById('modal-tutorial')?.classList.remove('active');
-  if (!STATE.config.tutorialVisto) {
+  if (!STATE.config.tutorialVisto || STATE.config.tutorialVersaoVista !== TUTORIAL_VERSAO) {
     STATE.config.tutorialVisto = true;
+    STATE.config.tutorialVersaoVista = TUTORIAL_VERSAO; // v18.16
     salvar();
   }
   if (_tutorialPrimeiraVez) {
@@ -1043,6 +1368,7 @@ function renderQuestCard(q) {
           <span class="quest-cat-tag">${escapeHTML(getEmojiCategoria(q.categoria))} ${escapeHTML(getNomeCategoria(q.categoria))}</span>
           <span class="quest-xp">+${q.xp} XP</span>
           ${q.requerFoto ? '<span class="quest-prova-badge" title="Precisa de foto de prova para concluir">📸</span>' : ''}
+          ${q.recorrente ? `<span class="quest-prova-badge" title="Quest recorrente (${q.recorrente.frequencia === 'semanal' ? 'semanal' : 'diária'})">🔁</span>` : ''}
         </div>
       </div>
       <button class="quest-delete" data-action="delete" data-id="${escapeAttr(q.id)}" aria-label="Excluir quest">🗑️</button>
@@ -1186,14 +1512,127 @@ const CONQUISTAS = [
   { id: 'dez',       emoji: '🛡️', nome: 'Guerreira',         desc: 'Conclua 10 quests, sendo 2 com foto de prova',     cond: p => p.totalConcluidas >= 10 && p.comProvaConcluidas >= 2 },
   { id: 'cinquenta', emoji: '🏰', nome: 'Heroína do Reino',  desc: 'Conclua 50 quests, sendo 10 com foto de prova',    cond: p => p.totalConcluidas >= 50 && p.comProvaConcluidas >= 10 },
   { id: 'cem',       emoji: '👑', nome: 'Lenda Viva',        desc: 'Conclua 100 quests, sendo 25 com foto de prova',   cond: p => p.totalConcluidas >= 100 && p.comProvaConcluidas >= 25 },
+  // v18.19: degrau acima da Lenda Viva — bônus pra quem passa dos 200
+  { id: 'lendaviva200', emoji: '🏆', nome: 'Além da Lenda', desc: 'Conclua 200 quests, sendo 50 com foto de prova', cond: p => p.totalConcluidas >= 200 && p.comProvaConcluidas >= 50 },
   { id: 'nivel3',    emoji: '⭐', nome: 'Em Ascensão',       desc: 'Alcance o nível 3',                 cond: p => p.nivel >= 3 },
   { id: 'nivel5',    emoji: '🌟', nome: 'Estrela do Reino',  desc: 'Alcance o nível 5',                 cond: p => p.nivel >= 5 },
   { id: 'nivel10',   emoji: '💫', nome: 'Suprema',           desc: 'Alcance o nível 10',                cond: p => p.nivel >= 10 },
   { id: 'streak3',   emoji: '🔥', nome: 'Pegando Fogo',      desc: '3 dias seguidos com quest feita',   cond: p => p.streak >= 3 },
   { id: 'streak7',   emoji: '🌋', nome: 'Semana Épica',      desc: '7 dias seguidos com quest feita',   cond: p => p.streak >= 7 },
+  // v18.14: degrau entre Semana Épica (7) e Imparável (30)
+  { id: 'ritmoguerra', emoji: '⚡', nome: 'Ritmo de Guerra', desc: '14 dias seguidos com quest feita',  cond: p => p.streak >= 14 },
   { id: 'streak30',  emoji: '☄️', nome: 'Imparável',         desc: '30 dias seguidos com quest feita',  cond: p => p.streak >= 30 },
-  { id: 'epica',     emoji: '💎', nome: 'Caçadora de Épicas', desc: 'Conclua uma quest Épica (100 XP) com foto de prova', cond: p => p.epicasComProvaConcluidas >= 1 }
+  // v18.19: degrau acima do Imparável — bônus pra streak de peso pesado
+  { id: 'imparavel60', emoji: '🌠', nome: 'Imparável 2.0', desc: '60 dias seguidos com quest feita', cond: p => p.streak >= 60 },
+  { id: 'epica',     emoji: '💎', nome: 'Caçadora de Épicas', desc: 'Conclua uma quest Épica (100 XP) com foto de prova', cond: p => p.epicasComProvaConcluidas >= 1 },
+  // v18.14: degrau acima da Caçadora de Épicas, mesmo contador
+  { id: 'domadora',  emoji: '🏔️', nome: 'Domadora de Titãs', desc: 'Conclua 5 quests Épicas (100 XP) com foto de prova', cond: p => p.epicasComProvaConcluidas >= 5 },
+  // v18.12/v18.14: troféus secretos — nome/descrição ficam ocultos
+  // (renderConquistas) até desbloquear, pra dar efeito surpresa.
+  { id: 'variada',     emoji: '🎭', nome: 'Multitarefa',  desc: 'Conclua quests de 3 categorias diferentes no mesmo dia', secreto: true, cond: p => p.categoriasMesmoDiaMax >= 3 },
+  { id: 'madrugadora', emoji: '🌅', nome: 'Madrugadora',  desc: 'Conclua uma quest antes das 7h da manhã',                secreto: true, cond: p => !!p.completouAntes7h },
+  { id: 'corujao',     emoji: '🦉', nome: 'Coruja',       desc: 'Conclua uma quest depois das 23h',                       secreto: true, cond: p => !!p.completouApos23h },
+  { id: 'diaperfeito', emoji: '✨', nome: 'Dia Perfeito', desc: 'Zere a lista de quests pendentes pelo menos uma vez',    secreto: true, cond: p => !!p.diaPerfeitoAlcancado },
+  // v18.14: 8 novos troféus secretos, na maioria variações mais raras dos acima
+  { id: 'exploradora',       emoji: '🗺️', nome: 'Exploradora',        desc: 'Conclua quests de 4 categorias diferentes no mesmo dia',       secreto: true, cond: p => p.categoriasMesmoDiaMax >= 4 },
+  { id: 'diaimpecavel',      emoji: '💠', nome: 'Dia Impecável',       desc: 'Zere a lista de pendentes com foto de prova em TODAS as quests do dia', secreto: true, cond: p => !!p.diaImpecavelAlcancado },
+  { id: 'madrugadaprofunda', emoji: '🌌', nome: 'Madrugada Profunda',  desc: 'Conclua uma quest entre meia-noite e 4h da manhã',              secreto: true, cond: p => !!p.completouEntre0e4h },
+  { id: 'rotinanoturna',     emoji: '🌙', nome: 'Rotina Noturna',      desc: 'Conclua 3 quests depois das 22h',                                secreto: true, cond: p => (p.vezesApos22h || 0) >= 3 },
+  { id: 'maratonista',       emoji: '🏃‍♀️', nome: 'Maratonista do Dia', desc: 'Conclua 5 quests em um único dia',                              secreto: true, cond: p => (p.maxQuestsDia || 0) >= 5 },
+  { id: 'furia',             emoji: '🌪️', nome: 'Fúria de Quests',     desc: 'Conclua 8 quests em um único dia',                               secreto: true, cond: p => (p.maxQuestsDia || 0) >= 8 },
+  { id: 'milfaces',          emoji: '🌈', nome: 'Mil e Uma Faces',     desc: 'Conclua 15 tipos diferentes de quest (títulos únicos)',          secreto: true, cond: p => (p.titulosConcluidos || []).length >= 15 },
+  { id: 'camaleoa',          emoji: '🎨', nome: 'Camaleoa',            desc: 'Conclua 30 tipos diferentes de quest (títulos únicos)',          secreto: true, cond: p => (p.titulosConcluidos || []).length >= 30 },
+  { id: 'voltoumaisforte',   emoji: '🛟', nome: 'Voltei Mais Forte',   desc: 'Quebrou uma streak de 3+ dias e voltou a alcançar 3 dias em até 3 dias', secreto: true, cond: p => !!p.recuperouStreak },
+  { id: 'casal10',           emoji: '💞', nome: 'Cúmplices',           desc: 'Conclua 10 quests na categoria Casal',                           secreto: true, cond: p => ((p.concluidasPorCategoria || {}).casal || 0) >= 10 },
+  // v18.19: troféu de calendário — dispara em qualquer data especial configurada em Config
+  { id: 'dataespecial',      emoji: '🎂', nome: 'Data Especial',       desc: 'Esteve no DailyRealm numa data especial do casal',              secreto: true, cond: p => !!p.dataEspecialAtingida }
 ];
+
+// v18.12: atualiza os contadores/flags usados pelos troféus temáticos acima —
+// chamar sempre que uma quest for concluída (com ou sem foto de prova),
+// ANTES de verificarConquistas(), senão o desbloqueio sai um ciclo atrasado.
+function atualizarFlagsConquistasContextuais(q) {
+  const ts = q.concluidoEm || Date.now();
+  const dt = new Date(ts);
+  const hora = dt.getHours();
+  if (hora < 7) STATE.player.completouAntes7h = true;
+  if (hora >= 23) STATE.player.completouApos23h = true;
+  if (hora < 4) STATE.player.completouEntre0e4h = true; // v18.14: Madrugada Profunda
+  if (hora >= 22) STATE.player.vezesApos22h = (STATE.player.vezesApos22h || 0) + 1; // v18.14: Rotina Noturna
+
+  const inicioDia = new Date(dt); inicioDia.setHours(0, 0, 0, 0);
+  const fimDia = new Date(dt); fimDia.setHours(23, 59, 59, 999);
+  const concluidasHoje = STATE.quests.filter(
+    x => x.done && x.concluidoEm >= inicioDia.getTime() && x.concluidoEm <= fimDia.getTime()
+  );
+
+  const categoriasHoje = new Set(concluidasHoje.map(x => x.categoria));
+  if (categoriasHoje.size > (STATE.player.categoriasMesmoDiaMax || 0)) {
+    STATE.player.categoriasMesmoDiaMax = categoriasHoje.size;
+  }
+
+  // v18.14: recorde de quests concluídas num único dia (Maratonista/Fúria)
+  if (concluidasHoje.length > (STATE.player.maxQuestsDia || 0)) {
+    STATE.player.maxQuestsDia = concluidasHoje.length;
+  }
+
+  // v18.14: histórico de títulos únicos já concluídos (Mil e Uma Faces/Camaleoa)
+  const tituloNorm = (q.titulo || '').trim().toLowerCase();
+  if (tituloNorm) {
+    if (!Array.isArray(STATE.player.titulosConcluidos)) STATE.player.titulosConcluidos = [];
+    if (!STATE.player.titulosConcluidos.includes(tituloNorm)) {
+      STATE.player.titulosConcluidos.push(tituloNorm);
+    }
+  }
+
+  // v18.14: contador de conclusões por categoria (ex.: troféu Cúmplices na categoria Casal)
+  if (q.categoria) {
+    if (!STATE.player.concluidasPorCategoria) STATE.player.concluidasPorCategoria = {};
+    STATE.player.concluidasPorCategoria[q.categoria] = (STATE.player.concluidasPorCategoria[q.categoria] || 0) + 1;
+  }
+
+  // "Dia perfeito": nenhuma quest pendente sobrando (e existe ao menos 1 quest)
+  if (STATE.quests.length > 0 && STATE.quests.every(x => x.done)) {
+    STATE.player.diaPerfeitoAlcancado = true;
+    // v18.14: versão mais rara — todas as concluídas do dia exigiam foto de prova
+    if (STATE.quests.every(x => x.requerFoto)) {
+      STATE.player.diaImpecavelAlcancado = true;
+    }
+  }
+}
+
+// v18.19: TROFÉU "DATA ESPECIAL" — checa se hoje bate com alguma das datas
+// cadastradas em Config → Datas Especiais. Roda no init e a cada minuto
+// (mesmo timer dos lembretes), mas só processa 1x por dia (ultimaChecagemDataEspecial).
+// Formato esperado: 'DD/MM' pras datas anuais, só o dia (nº) pro mesversário.
+function verificarDatasEspeciais() {
+  const cfg = STATE.config.datasEspeciais;
+  if (!cfg) return;
+  const hoje = new Date();
+  const hojeStr = hoje.toDateString();
+  if (STATE.player.ultimaChecagemDataEspecial === hojeStr) return;
+  STATE.player.ultimaChecagemDataEspecial = hojeStr;
+
+  const dia = hoje.getDate();
+  const mes = hoje.getMonth() + 1;
+
+  const bateDDMM = (str) => {
+    if (!str) return false;
+    const partes = String(str).split('/');
+    const d = parseInt(partes[0], 10);
+    const m = parseInt(partes[1], 10);
+    return d === dia && m === mes;
+  };
+  const bateMesversario = (str) => {
+    if (!str) return false;
+    return parseInt(str, 10) === dia;
+  };
+
+  if (bateDDMM(cfg.casamento) || bateDDMM(cfg.roberta) || bateDDMM(cfg.aline) || bateMesversario(cfg.mesversario)) {
+    STATE.player.dataEspecialAtingida = true;
+    salvar();
+  }
+}
 
 function verificarConquistas() {
   if (!STATE.player.conquistas) STATE.player.conquistas = {};
@@ -1210,9 +1649,36 @@ function verificarConquistas() {
   novas.forEach((c, i) => {
     setTimeout(() => {
       somConquista();
-      mostrarToast(`🏆 Conquista desbloqueada: ${c.emoji} ${c.nome}!`);
+      mostrarToastConquista(`🏆 Conquista desbloqueada: ${c.emoji} ${c.nome}!`, c.id);
     }, 2800 + i * 2700);
   });
+}
+
+// v18.17: markup de 1 card de troféu — extraído pra função própria pra
+// poder ser reaproveitado tanto na grade completa quanto na seção de
+// destaque "Prontas pra resgatar" (evita duplicar o HTML nos dois lugares)
+function renderCartaoConquista(c, desbloq) {
+  const quando = desbloq[c.id];
+  const data = quando ? new Date(quando).toLocaleDateString('pt-BR') : '';
+  // v18.12: troféu secreto ainda não desbloqueado — esconde nome/descrição
+  const oculto = !!c.secreto && !quando;
+  // T2: recompensa real (fixa) — visível como meta mesmo antes de desbloquear
+  const r = STATE.recompensas[c.id];
+  const temRecompensa = !oculto && r && r.texto && r.texto.trim();
+  return `
+    <div class="conquista-card ${quando ? 'aberta' : 'bloqueada'} ${oculto ? 'secreta' : ''}">
+      ${quando ? `<button type="button" class="conquista-compartilhar" data-action="compartilhar" data-id="${escapeAttr(c.id)}" aria-label="Compartilhar troféu" title="Compartilhar">📤</button>` : ''}
+      <div class="conquista-emoji">${quando ? c.emoji : (oculto ? '❓' : '🔒')}</div>
+      <div class="conquista-nome">${oculto ? '???' : escapeHTML(c.nome)}</div>
+      <div class="conquista-desc">${oculto ? 'Troféu secreto — desbloqueie pra descobrir!' : escapeHTML(c.desc)}</div>
+      ${quando ? `<div class="conquista-data">✨ ${data}</div>` : ''}
+      ${temRecompensa ? `
+        <button type="button"
+                class="conquista-recompensa ${quando && r.resgatado ? 'resgatada' : ''}"
+                ${quando ? `data-action="toggle-resgatado" data-id="${escapeAttr(c.id)}"` : 'disabled'}>
+          🎁 ${escapeHTML(r.texto)}${quando && r.resgatado ? ' ✅' : ''}
+        </button>` : ''}
+    </div>`;
 }
 
 function renderConquistas() {
@@ -1228,32 +1694,48 @@ function renderConquistas() {
       : `${feitas} de ${CONQUISTAS.length} troféus conquistados`;
   }
 
-  lista.innerHTML = CONQUISTAS.map(c => {
-    const quando = desbloq[c.id];
-    const data = quando ? new Date(quando).toLocaleDateString('pt-BR') : '';
-    // T2: recompensa real (fixa) — visível como meta mesmo antes de desbloquear
-    const r = STATE.recompensas[c.id];
-    const temRecompensa = r && r.texto && r.texto.trim();
-    return `
-      <div class="conquista-card ${quando ? 'aberta' : 'bloqueada'}">
-        <div class="conquista-emoji">${quando ? c.emoji : '🔒'}</div>
-        <div class="conquista-nome">${escapeHTML(c.nome)}</div>
-        <div class="conquista-desc">${escapeHTML(c.desc)}</div>
-        ${quando ? `<div class="conquista-data">✨ ${data}</div>` : ''}
-        ${temRecompensa ? `
-          <button type="button"
-                  class="conquista-recompensa ${quando && r.resgatado ? 'resgatada' : ''}"
-                  ${quando ? `data-action="toggle-resgatado" data-id="${escapeAttr(c.id)}"` : 'disabled'}>
-            🎁 ${escapeHTML(r.texto)}${quando && r.resgatado ? ' ✅' : ''}
-          </button>` : ''}
-      </div>`;
-  }).join('');
+  // v18.17: troféus já desbloqueados com recompensa ainda não resgatada
+  // sobem pra uma seção própria no topo — senão ficam perdidos no meio da
+  // grade completa (com 29 troféus, ficou fácil não notar um prêmio novo)
+  const secaoPendentes = document.getElementById('conquistas-pendentes-secao');
+  const listaPendentes = document.getElementById('conquistas-pendentes-lista');
+  const pendentes = CONQUISTAS
+    .filter(c => {
+      const quando = desbloq[c.id];
+      const r = STATE.recompensas[c.id];
+      return quando && r && r.texto && r.texto.trim() && !r.resgatado;
+    })
+    .sort((a, b) => (desbloq[b.id] || 0) - (desbloq[a.id] || 0)); // mais recentes primeiro
+  // v18.18: fix — os que sobem pro topo saem da grade completa lá embaixo,
+  // senão o MESMO troféu aparecia 2x na tela (reportado pela Roberta)
+  const idsPendentes = new Set(pendentes.map(c => c.id));
+
+  if (secaoPendentes && listaPendentes) {
+    if (pendentes.length > 0) {
+      listaPendentes.innerHTML = pendentes.map(c => renderCartaoConquista(c, desbloq)).join('');
+      secaoPendentes.classList.remove('oculto');
+    } else {
+      listaPendentes.innerHTML = '';
+      secaoPendentes.classList.add('oculto');
+    }
+  }
+
+  lista.innerHTML = CONQUISTAS
+    .filter(c => !idsPendentes.has(c.id))
+    .map(c => renderCartaoConquista(c, desbloq))
+    .join('');
 }
 
 // v18.4: recompensa é fixa (definida pela Roberta) — a tela "Gerenciar
 // recompensas" em Config foi removida. Tocar no card da recompensa já
 // desbloqueada (tela Troféus) marca/desmarca como resgatada.
-document.getElementById('conquistas-lista')?.addEventListener('click', (e) => {
+function _aoClicarResgatarConquista(e) {
+  // v18.19: compartilhar troféu (ícone 📤 no card já desbloqueado)
+  const btnShare = e.target.closest('[data-action="compartilhar"]');
+  if (btnShare) {
+    compartilharTrofeu(btnShare.dataset.id);
+    return;
+  }
   const btn = e.target.closest('[data-action="toggle-resgatado"]');
   if (!btn) return;
   const id = btn.dataset.id;
@@ -1262,7 +1744,59 @@ document.getElementById('conquistas-lista')?.addEventListener('click', (e) => {
   salvar();
   renderConquistas();
   mostrarToast(STATE.recompensas[id].resgatado ? '✅ Recompensa marcada como resgatada!' : '↩️ Desmarcada');
-});
+}
+document.getElementById('conquistas-lista')?.addEventListener('click', _aoClicarResgatarConquista);
+document.getElementById('conquistas-pendentes-lista')?.addEventListener('click', _aoClicarResgatarConquista); // v18.17
+
+// v18.19: COMPARTILHAR TROFÉU — pq a Aline não consegue avisar a Roberta
+// sozinha quando desbloqueia algo. Usa o menu nativo de compartilhar do
+// celular (Web Share API); se o navegador não suportar, cai pra copiar o
+// texto na área de transferência (e por último, um prompt manual).
+async function compartilharTrofeu(conquistaId) {
+  const c = CONQUISTAS.find(x => x.id === conquistaId);
+  if (!c) return;
+  const r = STATE.recompensas[conquistaId];
+  const recompensaTexto = (r && r.texto && r.texto.trim()) ? `\n🎁 Recompensa: ${r.texto}` : '';
+  const texto = `🏆 Troféu desbloqueado no DailyRealm: ${c.emoji} ${c.nome} — ${c.desc}!${recompensaTexto}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: texto });
+    } catch (e) {
+      // cancelou o compartilhamento — comportamento normal, sem toast de erro
+    }
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      mostrarToast('📋 Texto copiado! Cole no WhatsApp pra compartilhar.');
+      return;
+    } catch (e) {
+      // segue pro fallback abaixo
+    }
+  }
+  try { window.prompt('Copie o texto abaixo pra compartilhar:', texto); } catch (e) {}
+}
+
+// v18.10: botão em Config → Ajuda pra atualizar os textos das recompensas
+// sem precisar de console do navegador — refaz o texto de cada troféu a
+// partir de RECOMPENSAS_PADRAO (o que estiver definido no app.js "atual"),
+// mas preserva os "Resgatado" já marcados
+function restaurarRecompensasPadrao() {
+  const ok = confirm('Isso vai atualizar o texto das recompensas dos troféus pros valores mais recentes. As marcações de "Resgatado" são mantidas. Continuar?');
+  if (!ok) return;
+  Object.keys(RECOMPENSAS_PADRAO).forEach(id => {
+    const atual = STATE.recompensas[id];
+    STATE.recompensas[id] = {
+      texto: RECOMPENSAS_PADRAO[id].texto,
+      resgatado: atual ? !!atual.resgatado : false
+    };
+  });
+  salvar();
+  renderConquistas();
+  mostrarToast('🔄 Recompensas atualizadas!');
+}
 
 // ═══════════════════════════════════════════════
 // AÇÕES DE QUEST
@@ -1273,16 +1807,89 @@ function atualizarStreak() {
   const hoje = new Date().toDateString();
   if (STATE.player.ultimoDiaComQuest === hoje) return;
   const ontem = new Date(Date.now() - 864e5).toDateString();
-  STATE.player.streak = (STATE.player.ultimoDiaComQuest === ontem)
-    ? STATE.player.streak + 1
-    : 1;
+  const anteontem = new Date(Date.now() - 2 * 864e5).toDateString();
+  const consecutivo = STATE.player.ultimoDiaComQuest === ontem;
+
+  // v18.15: streak com "perdão" — perdeu EXATAMENTE 1 dia (não consecutivo,
+  // mas o último dia registrado foi anteontem) e ainda tem o congelamento
+  // do mês disponível: a sequência é perdoada em vez de quebrar
+  if (!consecutivo && STATE.player.ultimoDiaComQuest === anteontem && STATE.player.streak >= 1) {
+    const mesAtual = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+    if (STATE.player.ultimoCongelamentoMes !== mesAtual) {
+      STATE.player.ultimoCongelamentoMes = mesAtual;
+      STATE.player.streak += 1;
+      STATE.player.ultimoDiaComQuest = hoje;
+      setTimeout(() => {
+        mostrarToast('🛡️ Você perdeu 1 dia, mas usamos seu congelamento do mês — streak protegida!');
+      }, 1200);
+      return; // não é quebra de streak — pula a detecção de quebra abaixo
+    }
+  }
+
+  // v18.14: guarda o momento em que uma streak de peso (>=3) quebrou, pra
+  // detectar recuperação rápida — troféu secreto "Voltei Mais Forte"
+  if (!consecutivo && STATE.player.ultimoDiaComQuest && STATE.player.streak >= 3) {
+    STATE.player.streakQuebrouEm = Date.now();
+  }
+
+  STATE.player.streak = consecutivo ? STATE.player.streak + 1 : 1;
   STATE.player.ultimoDiaComQuest = hoje;
+
+  // v18.14: streak reconstruída até >=3 dentro de 3 dias da quebra anterior
+  if (STATE.player.streakQuebrouEm) {
+    if (STATE.player.streak >= 3) {
+      if (Date.now() - STATE.player.streakQuebrouEm <= 3 * 864e5) {
+        STATE.player.recuperouStreak = true;
+      }
+      STATE.player.streakQuebrouEm = null; // consome a marca (sucesso ou não)
+    } else if (Date.now() - STATE.player.streakQuebrouEm > 3 * 864e5) {
+      STATE.player.streakQuebrouEm = null; // prazo esgotado, limpa a marca
+    }
+  }
+
   if (STATE.player.streak > 1) {
     setTimeout(() => {
       somStreak();
       mostrarToast(`🔥 Streak de ${STATE.player.streak} dias! Imparável!`);
     }, 1200);
   }
+}
+
+// v18.15: anti-farm por repetição — XP cai progressivamente se a MESMA
+// quest (mesmo título, normalizado) for concluída várias vezes no mesmo
+// dia. Evita criar "tomar água" 10x e ganhar XP de graça repetidamente.
+const TABELA_ANTIFARM = [1, 0.5, 0.25, 0.1]; // 1ª=100%, 2ª=50%, 3ª=25%, 4ª em diante=10%
+function calcularMultiplicadorAntiFarm(titulo) {
+  const tituloNorm = (titulo || '').trim().toLowerCase();
+  if (!tituloNorm) return 1;
+  const agora = new Date();
+  const inicioDia = new Date(agora); inicioDia.setHours(0, 0, 0, 0);
+  const fimDia = new Date(agora); fimDia.setHours(23, 59, 59, 999);
+  const jaConcluidasHoje = STATE.quests.filter(x =>
+    x.done &&
+    x.concluidoEm >= inicioDia.getTime() && x.concluidoEm <= fimDia.getTime() &&
+    (x.titulo || '').trim().toLowerCase() === tituloNorm
+  ).length;
+  return TABELA_ANTIFARM[Math.min(jaConcluidasHoje, TABELA_ANTIFARM.length - 1)];
+}
+
+// v18.15: quest recorrente — spawna a próxima ocorrência (pendente) assim
+// que a atual é concluída. Reaparece imediatamente em vez de esperar a
+// data certa por simplicidade — se completar de novo no mesmo dia, o
+// anti-farm acima já cuida de reduzir o XP, então não abre brecha.
+function spawnarProximaOcorrencia(q) {
+  if (!q.recorrente) return;
+  STATE.quests.unshift({
+    id: uid(),
+    titulo: q.titulo,
+    desc: q.desc,
+    categoria: q.categoria,
+    xp: q.xp,
+    done: false,
+    criadoEm: Date.now(),
+    requerFoto: q.requerFoto,
+    recorrente: q.recorrente
+  });
 }
 
 function toggleQuest(id) {
@@ -1294,20 +1901,30 @@ function toggleQuest(id) {
     return;
   }
   if (!q.done) {
+    // v18.15: calcula o multiplicador ANTES de marcar como concluída
+    // (senão ela contaria a si mesma na contagem de repetições do dia)
+    const mult = calcularMultiplicadorAntiFarm(q.titulo);
+    const xpConcedido = Math.max(1, Math.round(q.xp * mult));
     q.done = true;
     q.concluidoEm = Date.now();
+    q.xpConcedido = xpConcedido; // guarda o XP realmente dado, pra reverter certo se desmarcar
     somConcluir();
-    adicionarXP(q.xp);
+    adicionarXP(xpConcedido);
     atualizarStreak();
     // T: contadores para conquistas
     STATE.player.totalConcluidas++;
     if (q.xp >= 100) STATE.player.epicasConcluidas++;
+    atualizarFlagsConquistasContextuais(q); // v18.12: troféus temáticos secretos
     verificarConquistas();
-    mostrarToast(`✨ +${q.xp} XP conquistado!`);
+    mostrarToast(mult < 1
+      ? `✨ +${xpConcedido} XP (repetida hoje — XP reduzido)`
+      : `✨ +${xpConcedido} XP conquistado!`);
+    spawnarProximaOcorrencia(q); // v18.15: quests recorrentes
   } else {
     q.done = false;
     delete q.concluidoEm;
-    removerXP(q.xp); // B1: agora reverte nível corretamente
+    removerXP(q.xpConcedido != null ? q.xpConcedido : q.xp); // B1/v18.15: reverte o XP realmente dado
+    delete q.xpConcedido;
     // T: reverte contadores (conquistas já ganhas permanecem — padrão de jogos)
     STATE.player.totalConcluidas = Math.max(0, STATE.player.totalConcluidas - 1);
     if (q.xp >= 100) STATE.player.epicasConcluidas = Math.max(0, STATE.player.epicasConcluidas - 1);
@@ -1343,6 +1960,26 @@ function mostrarToastDesfazer(msg, aoDesfazer) {
   btn.onclick = () => {
     t.classList.remove('show');
     aoDesfazer();
+  };
+  t.appendChild(btn);
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 5000);
+}
+
+// v18.19: toast de troféu desbloqueado ganha um botão de compartilhar direto
+// (o "botão informativo" que a Roberta pediu) — mesmo padrão do Desfazer
+function mostrarToastConquista(msg, conquistaId) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'toast-share-btn';
+  btn.textContent = '📤 Compartilhar';
+  btn.onclick = () => {
+    t.classList.remove('show');
+    compartilharTrofeu(conquistaId);
   };
   t.appendChild(btn);
   t.classList.add('show');
@@ -1441,12 +2078,16 @@ function abrirNovaQuest() {
   }
   STATE.modal.xp = 10;
   STATE.modal.requerFoto = false;
+  STATE.modal.recorrente = null;
 
   renderCategoriaPicker();
   document.querySelectorAll('.diff-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.xp === '10'));
   const chkFoto = document.getElementById('quest-requer-foto');
   if (chkFoto) chkFoto.checked = false;
+  const chkRepetir = document.getElementById('quest-repetir');
+  if (chkRepetir) chkRepetir.checked = false;
+  document.getElementById('quest-repetir-freq')?.classList.add('oculto');
 
   document.getElementById('modal-nova-quest-titulo').textContent = '✨ Nova Quest';
   document.getElementById('btn-salvar-quest').textContent = '⚔️ Criar Quest';
@@ -1468,6 +2109,7 @@ function abrirEditarQuest(id) {
   STATE.modal.categoria = q.categoria;
   STATE.modal.xp = q.xp;
   STATE.modal.requerFoto = !!q.requerFoto;
+  STATE.modal.recorrente = q.recorrente || null;
 
   document.getElementById('quest-titulo').value = q.titulo;
   document.getElementById('quest-desc').value = q.desc || '';
@@ -1477,6 +2119,13 @@ function abrirEditarQuest(id) {
     b.classList.toggle('active', parseInt(b.dataset.xp, 10) === q.xp));
   const chkFoto = document.getElementById('quest-requer-foto');
   if (chkFoto) chkFoto.checked = !!q.requerFoto;
+  const chkRepetir = document.getElementById('quest-repetir');
+  const freqSelect = document.getElementById('quest-repetir-freq');
+  if (chkRepetir) chkRepetir.checked = !!q.recorrente;
+  if (freqSelect) {
+    freqSelect.value = q.recorrente ? q.recorrente.frequencia : 'diaria';
+    freqSelect.classList.toggle('oculto', !q.recorrente);
+  }
 
   document.getElementById('modal-nova-quest-titulo').textContent = '✏️ Editar Quest';
   document.getElementById('btn-salvar-quest').textContent = '💾 Salvar Alterações';
@@ -1484,6 +2133,11 @@ function abrirEditarQuest(id) {
 
   modal.classList.add('active');
   setTimeout(() => document.getElementById('quest-titulo')?.focus(), 100);
+}
+
+// v18.15: mostra/esconde o seletor de frequência junto com o toggle "Repetir"
+function onToggleRepetirQuest(checked) {
+  document.getElementById('quest-repetir-freq')?.classList.toggle('oculto', !checked);
 }
 
 function fecharNovaQuest() {
@@ -1494,24 +2148,53 @@ function fecharNovaQuest() {
   STATE.modal.editandoId = null;
 }
 
-function criarQuest(e) {
+async function criarQuest(e) {
   e.preventDefault();
   const titulo = document.getElementById('quest-titulo').value.trim();
   const desc   = document.getElementById('quest-desc').value.trim();
   if (!titulo) return;
 
   const chkFoto = document.getElementById('quest-requer-foto');
-  const requerFoto = !!(chkFoto && chkFoto.checked); // T1: exige foto de prova pra concluir
+  let requerFoto = !!(chkFoto && chkFoto.checked); // T1: exige foto de prova pra concluir
+  let xpFinal = STATE.modal.xp;
+  const editandoId = STATE.modal.editandoId; // captura antes do await (modal pode fechar/reabrir durante a espera)
+
+  // v18.15: quest recorrente — repete automaticamente ao ser concluída
+  const chkRepetir = document.getElementById('quest-repetir');
+  const freqSelect = document.getElementById('quest-repetir-freq');
+  const recorrente = (chkRepetir && chkRepetir.checked)
+    ? { frequencia: (freqSelect && freqSelect.value) || 'diaria' }
+    : null;
+
+  // v18.11: IA define o TETO de XP pela dificuldade real da tarefa —
+  // só pode ficar nesse valor ou mais fácil do que o escolhido manualmente.
+  const btnSalvar = document.getElementById('btn-salvar-quest');
+  const rotuloOriginal = btnSalvar ? btnSalvar.textContent : '';
+  if (btnSalvar) { btnSalvar.disabled = true; btnSalvar.textContent = '🤖 Avaliando dificuldade...'; }
+  const ia = await classificarQuestIA(titulo, desc);
+  if (btnSalvar) { btnSalvar.disabled = false; btnSalvar.textContent = rotuloOriginal; }
+
+  // v18.13: o clamp vale MESMO offline (classificarQuestIA já devolve xp:10
+  // nesse caso) — antes um Worker fora do ar deixava passar qualquer XP
+  // escolhido sem travar em Fácil, reabrindo a brecha que isso existe pra fechar
+  if (xpFinal > ia.xp) {
+    xpFinal = ia.xp;
+    mostrarToast(ia.offline
+      ? '⚠️ Não consegui avaliar a dificuldade agora — classifiquei como Fácil por segurança'
+      : `🤖 Reclassificada como ${XP_NOME_REVISAO[ia.xp] || 'Fácil'} (${ia.xp} XP) — dificuldade real da tarefa`);
+  }
+  if (xpFinal >= 50) requerFoto = true; // Difícil/Épica sempre exige foto de prova de verdade
 
   // v18.8: modo edição — atualiza a quest existente em vez de criar outra
-  if (STATE.modal.editandoId) {
-    const q = STATE.quests.find(x => x.id === STATE.modal.editandoId);
+  if (editandoId) {
+    const q = STATE.quests.find(x => x.id === editandoId);
     if (q) {
       q.titulo = titulo;
       q.desc = desc;
       q.categoria = STATE.modal.categoria;
-      q.xp = STATE.modal.xp;
+      q.xp = xpFinal;
       q.requerFoto = requerFoto;
+      q.recorrente = recorrente;
     }
     salvar();
     renderQuests();
@@ -1525,10 +2208,11 @@ function criarQuest(e) {
     titulo,
     desc,
     categoria: STATE.modal.categoria,
-    xp: STATE.modal.xp,
+    xp: xpFinal,
     done: false,
     criadoEm: Date.now(),
-    requerFoto
+    requerFoto,
+    recorrente
   });
 
   salvar();
@@ -1912,10 +2596,13 @@ function confirmarConclusaoComProva() {
 
   document.getElementById('preview-prova')?.classList.remove('active');
 
+  // v18.15: anti-farm — calcula ANTES de marcar como concluída
+  const mult = calcularMultiplicadorAntiFarm(q.titulo);
   q.done = true;
   q.concluidoEm = Date.now();
   somConcluir();
-  const xpTotal = q.xp + XP_BONUS_FOTO_PROVA;
+  const xpTotal = Math.max(1, Math.round((q.xp + XP_BONUS_FOTO_PROVA) * mult));
+  q.xpConcedido = xpTotal; // guarda o XP realmente dado (usado se algum dia precisar reverter)
   adicionarXP(xpTotal);
   atualizarStreak();
   STATE.player.totalConcluidas++;
@@ -1924,8 +2611,12 @@ function confirmarConclusaoComProva() {
   // mais difíceis (Aventureira em diante e Caçadora de Épicas)
   STATE.player.comProvaConcluidas++;
   if (q.xp >= 100) STATE.player.epicasComProvaConcluidas++;
+  atualizarFlagsConquistasContextuais(q); // v18.12: troféus temáticos secretos
   verificarConquistas();
-  mostrarToast(`✨ +${xpTotal} XP (prova enviada)! 📸`);
+  mostrarToast(mult < 1
+    ? `✨ +${xpTotal} XP (prova enviada, repetida hoje) 📸`
+    : `✨ +${xpTotal} XP (prova enviada)! 📸`);
+  spawnarProximaOcorrencia(q); // v18.15: quests recorrentes
 
   salvar();
   renderStats();
@@ -2216,8 +2907,8 @@ function renderRevisao() {
         <button class="revisao-cat-btn" data-action="rev-cat" data-id="${escapeAttr(q.id)}" title="Trocar categoria">
           ${escapeHTML(getEmojiCategoria(q.categoria))}
         </button>
-        <button class="revisao-xp-btn" data-action="rev-xp" data-id="${escapeAttr(q.id)}" title="${XP_NOME_REVISAO[q.xp] || 'Fácil'} · +${q.xp} XP">
-          ${XP_EMOJI_REVISAO[q.xp] || '🟢'}
+        <button class="revisao-xp-btn" data-action="rev-xp" data-id="${escapeAttr(q.id)}" ${q._iaAvaliando ? 'disabled' : ''} title="${q._iaAvaliando ? 'Avaliando dificuldade...' : (XP_NOME_REVISAO[q.xp] || 'Fácil') + ' · +' + q.xp + ' XP'}">
+          ${q._iaAvaliando ? '⏳' : (XP_EMOJI_REVISAO[q.xp] || '🟢')}
         </button>
         <button class="revisao-foto-btn ${q.requerFoto ? 'ativo' : ''}" data-action="rev-foto" data-id="${escapeAttr(q.id)}" title="Pedir foto de prova ao concluir (+5 XP)" aria-label="Pedir foto de prova ao concluir">
           📸
@@ -2231,11 +2922,44 @@ function renderRevisao() {
   `).join('');
 }
 
-function trocarXPRevisao(id) {
+// v18.11: primeira vez que mexe no XP desta linha, busca o TETO da IA pra
+// esta quest (cacheado em q._iaTeto). Só cacheia numa resposta real (não
+// offline), pra que uma falha de rede não trave o item num teto errado —
+// a próxima tentativa reavalia. O ciclo de XP nunca passa do teto.
+async function trocarXPRevisao(id) {
   const q = QUESTS_REVISAO.find(x => x.id === id);
-  if (!q) return;
-  const idx = XP_TIERS_REVISAO.indexOf(q.xp);
-  q.xp = XP_TIERS_REVISAO[(idx + 1) % XP_TIERS_REVISAO.length];
+  if (!q || q._iaAvaliando) return;
+
+  let teto = q._iaTeto;
+  let eraOffline = false;
+
+  if (teto === undefined) {
+    q._iaAvaliando = true;
+    renderRevisao();
+    const ia = await classificarQuestIA(q.titulo, '');
+    q._iaAvaliando = false;
+    if (!ia.offline) {
+      q._iaTeto = ia.xp;
+      teto = ia.xp;
+      if (ia.exigirFoto) q.requerFoto = true;
+    } else {
+      // v18.13: sem conseguir avaliar, trava em Fácil só nesta tentativa
+      // (NÃO cacheia em q._iaTeto, pra próxima troca tentar de novo — mas
+      // também não deixa o ciclo livre nesse meio tempo, senão reabre a
+      // brecha que essa trava toda existe pra fechar)
+      eraOffline = true;
+      teto = 10;
+    }
+  }
+
+  const tetoIdx = XP_TIERS_REVISAO.indexOf(teto);
+  const tiersPermitidos = tetoIdx === -1 ? XP_TIERS_REVISAO : XP_TIERS_REVISAO.slice(0, tetoIdx + 1);
+
+  const idxAtual = tiersPermitidos.indexOf(q.xp);
+  q.xp = tiersPermitidos[idxAtual === -1 ? 0 : (idxAtual + 1) % tiersPermitidos.length];
+  if (q.xp >= 50) q.requerFoto = true; // Difícil/Épica sempre exige foto de prova
+
+  if (eraOffline) mostrarToast('⚠️ Não consegui avaliar agora — travado em Fácil até reconectar');
   renderRevisao();
 }
 
@@ -2289,6 +3013,7 @@ function editarTituloRevisao(id, novoTitulo) {
   const q = QUESTS_REVISAO.find(x => x.id === id);
   if (!q) return;
   q.titulo = novoTitulo.trim();
+  delete q._iaTeto; // v18.11: título mudou — teto antigo da IA não vale mais
 }
 
 function excluirRevisao(id) {
@@ -2312,6 +3037,7 @@ function unirComProxima(id) {
   const atual = QUESTS_REVISAO[idx];
   const proxima = QUESTS_REVISAO[idx + 1];
   atual.titulo = capitalizarPrimeira(`${atual.titulo.trim()} ${proxima.titulo.trim()}`.trim());
+  delete atual._iaTeto; // v18.11: texto mudou — reavalia teto na próxima troca de XP
   QUESTS_REVISAO.splice(idx + 1, 1);
   renderRevisao();
   mostrarToast('🔗 Linhas unidas!');
@@ -2386,7 +3112,46 @@ function renderConfig() {
   const insist = document.getElementById('config-insistir');
   if (insist) insist.value = STATE.config.insistirHoras;
 
+  const inputFrase = document.getElementById('config-frase-backup');
+  if (inputFrase) inputFrase.value = STATE.config.fraseBackup || '';
+  atualizarStatusBackupUI();
+
+  // v18.19: datas especiais (troféu de calendário)
+  const de = STATE.config.datasEspeciais || {};
+  ['casamento', 'mesversario', 'roberta', 'aline'].forEach(k => {
+    const el = document.getElementById('data-especial-' + k);
+    if (el) el.value = de[k] || '';
+  });
+
   renderCategoriasConfig();
+}
+
+// v18.12: define/atualiza a frase de backup+sincronização
+function salvarFraseBackup() {
+  const input = document.getElementById('config-frase-backup');
+  const frase = (input?.value || '').trim();
+  if (frase && frase.length < 4) {
+    mostrarToast('⚠️ Use pelo menos 4 caracteres na frase');
+    return;
+  }
+  const mudou = frase !== (STATE.config.fraseBackup || '');
+  STATE.config.fraseBackup = frase;
+  salvar();
+  atualizarStatusBackupUI();
+  if (mudou && frase) {
+    mostrarToast('☁️ Frase salva! Sincronizando...');
+    sincronizarComNuvem({ silencioso: false });
+  } else if (mudou && !frase) {
+    mostrarToast('⚪ Backup desativado');
+  }
+}
+
+function atualizarStatusBackupUI() {
+  const el = document.getElementById('config-backup-status');
+  if (!el) return;
+  el.textContent = (STATE.config.fraseBackup || '').trim()
+    ? '✅ Backup automático ativo'
+    : '⚪ Backup desativado — defina uma frase pra ativar';
 }
 
 function salvarConfigNome() {
@@ -2413,6 +3178,25 @@ function salvarConfigInsistir(valor) {
   salvar();
   mostrarToast(`🔁 Insistência: ${STATE.config.insistirHoras}h`);
   sincronizarPush();
+}
+
+// v18.19: datas especiais — 'casamento'/'roberta'/'aline' em DD/MM, 'mesversario' só o dia (nº)
+function salvarConfigDataEspecial(campo, valor) {
+  const v = (valor || '').trim();
+  if (v) {
+    const valido = campo === 'mesversario'
+      ? /^([1-9]|[12]\d|3[01])$/.test(v)
+      : /^([1-9]|[12]\d|3[01])\/([1-9]|1[0-2])$/.test(v);
+    if (!valido) {
+      mostrarToast(campo === 'mesversario' ? '⚠️ Use só o dia do mês (1 a 31)' : '⚠️ Use o formato DD/MM (ex: 12/07)');
+      renderConfig(); // desfaz o valor inválido na tela
+      return;
+    }
+  }
+  if (!STATE.config.datasEspeciais) STATE.config.datasEspeciais = {};
+  STATE.config.datasEspeciais[campo] = v;
+  salvar();
+  mostrarToast('🎂 Data salva!');
 }
 
 function toggleConfigSons(checked) {
@@ -2621,6 +3405,14 @@ aplicarTema();
 // B7: verifica onboarding PRIMEIRO — evita renderConfig em estado inconsistente
 const onboardingAtivo = verificarOnboarding();
 
+// v18.12: se já tem frase de backup configurada nesse aparelho, sincroniza
+// com a nuvem antes de seguir — é isso que dá o efeito de "espelhar" entre
+// tablet e celular (aplicarDadosRemotos re-renderiza tudo sozinha se trouxer
+// dados mais novos). Silencioso — não é pra incomodar toda vez que abre o app.
+if (!onboardingAtivo) {
+  sincronizarComNuvem({ silencioso: true });
+}
+
 renderStats();
 renderFiltrosCategorias();
 renderQuests();
@@ -2630,15 +3422,25 @@ verificarConquistas(); // T: desbloqueia retroativas (ex.: backfill de perfil an
 
 if (!onboardingAtivo) {
   processarShortcuts();
-  // v18: quem já usava o app antes do tutorial existir também vê 1x
   if (!STATE.config.tutorialVisto) {
+    // v18: quem já usava o app antes do tutorial existir também vê 1x
     setTimeout(() => abrirTutorial(true), 700);
+  } else if (STATE.config.tutorialVersaoVista !== TUTORIAL_VERSAO) {
+    // v18.16: já viu o tutorial, mas o conteúdo mudou — reabre 1x pra
+    // mostrar as novidades. Não é "primeira vez" (abrirTutorial(false)),
+    // então não dispara de novo o pedido de permissão de notificação.
+    setTimeout(() => abrirTutorial(false), 700);
   }
 }
 
 // 🔔 Lembretes: checa ao abrir e a cada minuto com o app aberto
 verificarLembretes();
 setInterval(verificarLembretes, 60000);
+
+// 🎂 v18.19: Data Especial — mesma cadência, mas só reprocessa 1x/dia (guard interno)
+verificarDatasEspeciais();
+verificarConquistas();
+setInterval(() => { verificarDatasEspeciais(); verificarConquistas(); }, 60000);
 
 // 🔔 Push real: se já tinha permissão concedida antes, garante que o
 // Worker está com os horários mais atuais (funciona com app fechado)
