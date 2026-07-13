@@ -733,6 +733,16 @@ textarea:focus-visible,
   padding-right: 24px;
 }
 
+/* v18.13: quando várias ações ficam empilhadas no mesmo grupo (ex: Ajuda
+   e Suporte), a margem generosa pensada pra 1 botão único e centralizado
+   cria buracos enormes entre eles — este modificador tira a margem/
+   largura própria, deixando o espaçamento vir só do gap do .config-grupo */
+.btn-add-categoria--lista {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
 /* ═══════════════════════════════════════════════════════════ */
 /* TELA DE ONBOARDING                                           */
 /* ═══════════════════════════════════════════════════════════ */
@@ -837,6 +847,19 @@ textarea:focus-visible,
   color: var(--cor-texto-3);
   margin-top: 12px;
   font-style: italic;
+}
+
+/* v18.12: link discreto pra restaurar backup na tela de onboarding */
+.onboarding-link-restaurar {
+  background: none;
+  border: none;
+  color: var(--cor-texto-2, #b8b8c8);
+  font-size: 13px;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 18px;
+  padding: 6px;
 }
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -1972,6 +1995,19 @@ select option:hover {
   letter-spacing: 0.5px;
 }
 
+/* v18.19: botão "Compartilhar" no toast de troféu desbloqueado — mesmo padrão do Desfazer */
+.toast-share-btn {
+  margin-left: 10px;
+  background: none;
+  border: none;
+  color: #FFD700;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* ═══════════════════════════════════════════════
    T: TELA DE CONQUISTAS (Troféus)
    ═══════════════════════════════════════════════ */
@@ -1982,13 +2018,59 @@ select option:hover {
   padding-bottom: 100px;
 }
 
+/* v18.17: seção de recompensas prontas pra resgatar, em destaque no topo */
+.conquistas-secao-titulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cor-amarelo);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0 4px 8px;
+}
+
+.conquistas-secao-titulo--todas {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#conquistas-pendentes-secao .conquistas-grid {
+  padding-bottom: 4px;
+}
+
 .conquista-card {
+  position: relative; /* v18.19: ancora o ícone de compartilhar no canto */
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 16px 10px;
   text-align: center;
   transition: transform 0.15s ease;
+}
+
+/* v18.19: ícone de compartilhar — só aparece em troféu já desbloqueado */
+.conquista-compartilhar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  z-index: 2;
+}
+
+.conquista-compartilhar:active {
+  transform: scale(0.9);
 }
 
 .conquista-card.aberta {
@@ -2004,6 +2086,13 @@ select option:hover {
 .conquista-card.bloqueada {
   opacity: 0.55;
   filter: grayscale(0.8);
+}
+
+/* v18.12: troféu secreto ainda não desbloqueado — visual de "mistério",
+   distinto do bloqueado comum (que já mostra nome/descrição) */
+.conquista-card.secreta {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .conquista-emoji {
