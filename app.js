@@ -127,9 +127,13 @@
 //                     + 4 datas configuráveis em Config); botão de
 //                     compartilhar troféu (menu nativo do celular) no toast
 //                     de desbloqueio e no ícone 📤 de cada troféu no quadro
+//              v18.20: as 4 datas especiais deixam de aparecer em Config —
+//                     ficam fixas só no código, pra não entregar a surpresa
+//                     do troféu "Data Especial" pra quem abre a tela (Aline
+//                     usa a mesma tela de Config)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.19';
+const APP_VERSAO = 'v18.20';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -370,6 +374,9 @@ const CONFIG_PADRAO = {
   tutorialVersaoVista: '', // v18.16: qual TUTORIAL_VERSAO essa pessoa já viu
   fraseBackup: '', // v18.12: chave pessoal pro backup/sincronização na nuvem
   // v18.19: datas especiais do casal — disparam o troféu secreto "Data Especial"
+  // v18.20: fixas aqui no código (SEM campo em Config) — a tela de Config é a
+  // mesma que a Aline usa, então deixar as datas visíveis/editáveis ali
+  // entregaria a existência do troféu-surpresa. Pra trocar uma data, edita aqui.
   datasEspeciais: {
     casamento: '12/07',   // aniversário de casamento (DD/MM)
     mesversario: '12',    // dia do mês — repete todo mês
@@ -3116,13 +3123,6 @@ function renderConfig() {
   if (inputFrase) inputFrase.value = STATE.config.fraseBackup || '';
   atualizarStatusBackupUI();
 
-  // v18.19: datas especiais (troféu de calendário)
-  const de = STATE.config.datasEspeciais || {};
-  ['casamento', 'mesversario', 'roberta', 'aline'].forEach(k => {
-    const el = document.getElementById('data-especial-' + k);
-    if (el) el.value = de[k] || '';
-  });
-
   renderCategoriasConfig();
 }
 
@@ -3178,25 +3178,6 @@ function salvarConfigInsistir(valor) {
   salvar();
   mostrarToast(`🔁 Insistência: ${STATE.config.insistirHoras}h`);
   sincronizarPush();
-}
-
-// v18.19: datas especiais — 'casamento'/'roberta'/'aline' em DD/MM, 'mesversario' só o dia (nº)
-function salvarConfigDataEspecial(campo, valor) {
-  const v = (valor || '').trim();
-  if (v) {
-    const valido = campo === 'mesversario'
-      ? /^([1-9]|[12]\d|3[01])$/.test(v)
-      : /^([1-9]|[12]\d|3[01])\/([1-9]|1[0-2])$/.test(v);
-    if (!valido) {
-      mostrarToast(campo === 'mesversario' ? '⚠️ Use só o dia do mês (1 a 31)' : '⚠️ Use o formato DD/MM (ex: 12/07)');
-      renderConfig(); // desfaz o valor inválido na tela
-      return;
-    }
-  }
-  if (!STATE.config.datasEspeciais) STATE.config.datasEspeciais = {};
-  STATE.config.datasEspeciais[campo] = v;
-  salvar();
-  mostrarToast('🎂 Data salva!');
 }
 
 function toggleConfigSons(checked) {
