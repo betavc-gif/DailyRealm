@@ -61,9 +61,12 @@
 //              Data Especial + 4 datas em Config; compartilhar troféu
 //              via menu nativo do celular, no toast de desbloqueio e
 //              no quadro de troféus)
+// v47........: bump forçado pra puxar app.js/index.html v18.20 (remove as
+//              4 datas especiais da tela de Config — ficam fixas só no
+//              código, pra não entregar a surpresa do troféu)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v46';
+const VERSAO = 'v47';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
