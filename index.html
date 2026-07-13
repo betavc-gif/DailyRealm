@@ -73,6 +73,23 @@
           </button>
           <p class="onboarding-dica">💡 Você pode mudar depois nas Configurações</p>
         </form>
+
+        <!-- v18.12: restaurar dados de outro aparelho via frase de backup -->
+        <button type="button" class="onboarding-link-restaurar" id="btn-mostrar-restaurar" onclick="mostrarRestaurarOnboarding()">
+          ☁️ Já uso o DailyRealm? Restaurar backup
+        </button>
+        <form class="onboarding-form oculto" id="form-restaurar-onboarding" onsubmit="restaurarBackupOnboarding(event)">
+          <label class="onboarding-label" for="onboarding-frase-restaurar">Frase de backup</label>
+          <input
+            type="text"
+            id="onboarding-frase-restaurar"
+            class="onboarding-input"
+            placeholder="A frase que você criou no outro aparelho"
+            autocapitalize="none"
+            spellcheck="false"
+          />
+          <button type="submit" class="onboarding-btn">☁️ Restaurar meus dados</button>
+        </form>
       </div>
     </div>
 
@@ -181,6 +198,15 @@
         <p class="subtitle" id="conquistas-contador">Seus troféus épicos</p>
       </header>
 
+      <!-- v18.17: troféus desbloqueados com recompensa ainda não resgatada
+           sobem pra cá, numa seção própria — senão ficam perdidos no meio
+           da grade completa lá embaixo -->
+      <div class="conquistas-secao oculto" id="conquistas-pendentes-secao">
+        <h2 class="conquistas-secao-titulo">🎁 Prontas pra resgatar</h2>
+        <div class="conquistas-grid" id="conquistas-pendentes-lista"></div>
+        <h2 class="conquistas-secao-titulo conquistas-secao-titulo--todas">🏆 Demais troféus</h2>
+      </div>
+
       <div class="conquistas-grid" id="conquistas-lista"></div>
     </main>
 
@@ -193,7 +219,7 @@
 
       <div class="config-list">
 
-        <!-- 👤 NOME -->
+        <!-- 👤 IDENTIDADE -->
         <div class="config-grupo">
           <div class="config-grupo-titulo">👤 Identidade</div>
           <div class="config-item config-item-input">
@@ -208,24 +234,6 @@
               onblur="salvarConfigNome()"
             />
           </div>
-        </div>
-
-        <!-- ❓ AJUDA / TUTORIAL -->
-        <div class="config-grupo">
-          <div class="config-grupo-titulo">❓ Ajuda</div>
-          <p class="config-hint">Reveja como o DailyRealm funciona, quantas vezes quiser</p>
-          <button type="button"
-                  class="btn-add-categoria btn-add-categoria--compacto"
-                  onclick="abrirTutorial(false)">
-            ❓ Ver tutorial →
-          </button>
-
-          <p class="config-hint" style="margin-top:14px;">Encontrou um problema ou tem uma ideia?</p>
-          <a href="https://wa.me/5548984642437?text=Oi!%20Tenho%20uma%20d%C3%BAvida%2Fsugest%C3%A3o%20sobre%20o%20DailyRealm%20%F0%9F%91%91"
-             target="_blank" rel="noopener"
-             class="btn-add-categoria" style="text-decoration:none; display:block; text-align:center;">
-            💬 Dúvidas e sugestões →
-          </a>
         </div>
 
         <!-- 🔔 NOTIFICAÇÕES E HORÁRIOS -->
@@ -295,14 +303,38 @@
         <!-- 🗂️ CATEGORIAS -->
         <div class="config-grupo">
           <div class="config-grupo-titulo">🗂️ Categorias</div>
-
-          <p class="config-hint">Personalize as categorias das suas quests</p>
-
           <button type="button"
                   class="btn-add-categoria"
                   onclick="abrirGerenciarCategorias()">
             ✏️ Gerenciar categorias →
           </button>
+        </div>
+
+        <!-- 🎂 DATAS ESPECIAIS (v18.19) -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">🎂 Datas Especiais</div>
+          <p class="config-hint">Datas do casal — vira surpresa quando o app for aberto num desses dias.</p>
+
+          <div class="config-item config-item-input">
+            <label for="data-especial-casamento">💍 Casamento (DD/MM)</label>
+            <input type="text" id="data-especial-casamento" maxlength="5" placeholder="12/07"
+                   inputmode="numeric" onblur="salvarConfigDataEspecial('casamento', this.value)" />
+          </div>
+          <div class="config-item config-item-input">
+            <label for="data-especial-mesversario">💗 Mesversário (dia do mês)</label>
+            <input type="text" id="data-especial-mesversario" maxlength="2" placeholder="12"
+                   inputmode="numeric" onblur="salvarConfigDataEspecial('mesversario', this.value)" />
+          </div>
+          <div class="config-item config-item-input">
+            <label for="data-especial-roberta">🎁 Aniversário Roberta (DD/MM)</label>
+            <input type="text" id="data-especial-roberta" maxlength="5" placeholder="03/09"
+                   inputmode="numeric" onblur="salvarConfigDataEspecial('roberta', this.value)" />
+          </div>
+          <div class="config-item config-item-input">
+            <label for="data-especial-aline">🎁 Aniversário Aline (DD/MM)</label>
+            <input type="text" id="data-especial-aline" maxlength="5" placeholder="28/04"
+                   inputmode="numeric" onblur="salvarConfigDataEspecial('aline', this.value)" />
+          </div>
         </div>
 
         <!-- 🎨 APARÊNCIA E SOM -->
@@ -317,6 +349,50 @@
               <span class="slider"></span>
             </label>
           </div>
+        </div>
+
+        <!-- ❓ AJUDA E SUPORTE -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">❓ Ajuda e Suporte</div>
+          <button type="button"
+                  class="btn-add-categoria btn-add-categoria--lista"
+                  onclick="abrirTutorial(false)">
+            ❓ Ver tutorial →
+          </button>
+          <a href="https://wa.me/5548984642437?text=Oi!%20Tenho%20uma%20d%C3%BAvida%2Fsugest%C3%A3o%20sobre%20o%20DailyRealm%20%F0%9F%91%91"
+             target="_blank" rel="noopener"
+             class="btn-add-categoria btn-add-categoria--lista" style="text-decoration:none; display:block; text-align:center;">
+            💬 Dúvidas e sugestões →
+          </a>
+          <button type="button"
+                  class="btn-add-categoria btn-add-categoria--lista"
+                  onclick="restaurarRecompensasPadrao()">
+            🔄 Atualizar recompensas →
+          </button>
+        </div>
+
+        <!-- ☁️ BACKUP E SINCRONIZAÇÃO (v18.12) -->
+        <div class="config-grupo">
+          <div class="config-grupo-titulo">☁️ Backup e Sincronização</div>
+          <p class="config-hint">Guarda seus dados na nuvem e sincroniza entre aparelhos (ex: tablet e celular).</p>
+          <div class="config-item config-item-input">
+            <label for="config-frase-backup">Frase de backup</label>
+            <input
+              type="text"
+              id="config-frase-backup"
+              maxlength="60"
+              placeholder="Ex: uma palavra ou frase só sua"
+              autocapitalize="none"
+              spellcheck="false"
+              onblur="salvarFraseBackup()"
+            />
+          </div>
+          <p class="config-hint" id="config-backup-status" style="margin-top:6px;"></p>
+          <button type="button"
+                  class="btn-add-categoria btn-add-categoria--compacto"
+                  onclick="sincronizarComNuvem({ silencioso: false })">
+            ☁️ Sincronizar agora →
+          </button>
         </div>
 
         <!-- 🚨 ZONA DE PERIGO (sempre por último, antes da versão) -->
@@ -335,7 +411,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v18.8</span> ⚔️
+          DailyRealm <span id="app-version">v18.19</span> ⚔️
         </p>
       </div>
     </main>
@@ -375,7 +451,7 @@
             <div class="choice-icon">📸</div>
             <div class="choice-text">
               <div class="choice-title">Por Foto</div>
-              <div class="choice-sub">do planner</div>
+              <div class="choice-sub">câmera ou galeria</div>
             </div>
             <div class="choice-badge">⚡ Rápido • Mágico</div>
           </button>
@@ -457,6 +533,21 @@
               </label>
             </div>
             <span class="field-hint" style="margin:0;">Dá +5 XP bônus quando a prova é enviada</span>
+          </div>
+
+          <div class="field">
+            <div class="config-item" style="padding:0; background:transparent; border:none; min-height:0;">
+              <span class="field-label" style="margin:0;">🔁 Repetir quest</span>
+              <label class="switch">
+                <input type="checkbox" id="quest-repetir" onchange="onToggleRepetirQuest(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <span class="field-hint" style="margin:0;">Ao concluir, uma quest igual aparece de novo sozinha</span>
+            <select id="quest-repetir-freq" class="oculto">
+              <option value="diaria">Repete todo dia</option>
+              <option value="semanal">Repete toda semana</option>
+            </select>
           </div>
 
           <button type="button" class="btn-reset-progresso oculto" id="btn-excluir-quest-modal"
@@ -710,22 +801,22 @@
       </div>
     </div>
 
-    <!-- Input invisível de câmera (OCR — criar quests por foto) -->
+    <!-- Input invisível de foto (OCR — criar quests por foto). v18.12: sem
+         "capture", o celular mostra a opção de Câmera OU Galeria/Arquivos -->
     <input
       type="file"
       id="input-camera"
       accept="image/*"
-      capture="environment"
       style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
       onchange="aoTirarFoto(event)"
     />
 
-    <!-- Input invisível de câmera (foto de prova ao concluir quest) -->
+    <!-- Input invisível de foto (foto de prova ao concluir quest). v18.12:
+         idem — permite escolher da galeria (ex: print de tela) -->
     <input
       type="file"
       id="input-camera-prova"
       accept="image/*"
-      capture="environment"
       style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
       onchange="aoTirarFotoProva(event)"
     />
