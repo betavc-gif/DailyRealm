@@ -384,7 +384,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v18.20</span> ⚔️
+          DailyRealm <span id="app-version">v18.21</span> ⚔️
         </p>
       </div>
     </main>
@@ -420,11 +420,24 @@
         <div class="escolha-body">
           <p class="escolha-intro">Escolha o método mais rápido pra você agora 👇</p>
 
-          <button class="choice-card choice-photo" onclick="escolherFoto()">
-            <div class="choice-icon">📸</div>
+          <!-- v18.21: split de "Por Foto" em 2 botões — em celulares mais
+               novos, o seletor de arquivo sem "capture" abre direto o
+               picker de fotos do Android (sem opção de câmera nenhuma),
+               então oferecemos as 2 opções explicitamente -->
+          <button class="choice-card choice-photo" onclick="escolherFotoCamera()">
+            <div class="choice-icon">📷</div>
             <div class="choice-text">
-              <div class="choice-title">Por Foto</div>
-              <div class="choice-sub">câmera ou galeria</div>
+              <div class="choice-title">Câmera</div>
+              <div class="choice-sub">tirar foto agora</div>
+            </div>
+            <div class="choice-badge">⚡ Rápido • Mágico</div>
+          </button>
+
+          <button class="choice-card choice-photo" onclick="escolherFotoGaleria()">
+            <div class="choice-icon">🖼️</div>
+            <div class="choice-text">
+              <div class="choice-title">Galeria</div>
+              <div class="choice-sub">escolher foto salva</div>
             </div>
             <div class="choice-badge">⚡ Rápido • Mágico</div>
           </button>
@@ -439,6 +452,40 @@
           </button>
 
           <button class="btn-secondary btn-cancelar-escolha" onclick="fecharEscolha()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE ESCOLHA — FOTO DE PROVA (v18.21) -->
+    <div class="modal-overlay" id="modal-escolha-prova" role="dialog" aria-modal="true" aria-labelledby="modal-escolha-prova-titulo">
+      <div class="modal modal-escolha">
+        <header class="modal-header">
+          <h2 id="modal-escolha-prova-titulo">📸 Foto de prova</h2>
+          <button class="modal-close" onclick="fecharEscolhaProva()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="escolha-body">
+          <p class="escolha-intro">Como quer enviar a foto?</p>
+
+          <button class="choice-card choice-photo" onclick="escolherProvaCamera()">
+            <div class="choice-icon">📷</div>
+            <div class="choice-text">
+              <div class="choice-title">Câmera</div>
+              <div class="choice-sub">tirar foto agora</div>
+            </div>
+          </button>
+
+          <button class="choice-card choice-photo" onclick="escolherProvaGaleria()">
+            <div class="choice-icon">🖼️</div>
+            <div class="choice-text">
+              <div class="choice-title">Galeria</div>
+              <div class="choice-sub">escolher foto salva</div>
+            </div>
+          </button>
+
+          <button class="btn-secondary btn-cancelar-escolha" onclick="fecharEscolhaProva()">
             Cancelar
           </button>
         </div>
@@ -774,8 +821,10 @@
       </div>
     </div>
 
-    <!-- Input invisível de foto (OCR — criar quests por foto). v18.12: sem
-         "capture", o celular mostra a opção de Câmera OU Galeria/Arquivos -->
+    <!-- Input invisível de foto (OCR — criar quests por foto). v18.21: o
+         atributo "capture" é ligado/desligado via JS (abrirCameraFoto) na
+         hora do clique, dependendo se a Roberta/Aline escolheu Câmera ou
+         Galeria na miniescolha — não depende mais do celular decidir -->
     <input
       type="file"
       id="input-camera"
@@ -784,8 +833,8 @@
       onchange="aoTirarFoto(event)"
     />
 
-    <!-- Input invisível de foto (foto de prova ao concluir quest). v18.12:
-         idem — permite escolher da galeria (ex: print de tela) -->
+    <!-- Input invisível de foto (foto de prova ao concluir quest). v18.21:
+         idem — "capture" ligado/desligado via JS (abrirCameraProva) -->
     <input
       type="file"
       id="input-camera-prova"
