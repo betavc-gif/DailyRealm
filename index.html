@@ -384,7 +384,7 @@
 
         <!-- B6: versão hardcoded como fallback -->
         <p class="config-versao">
-          DailyRealm <span id="app-version">v18.21</span> ⚔️
+          DailyRealm <span id="app-version">v18.22</span> ⚔️
         </p>
       </div>
     </main>
@@ -420,24 +420,14 @@
         <div class="escolha-body">
           <p class="escolha-intro">Escolha o método mais rápido pra você agora 👇</p>
 
-          <!-- v18.21: split de "Por Foto" em 2 botões — em celulares mais
-               novos, o seletor de arquivo sem "capture" abre direto o
-               picker de fotos do Android (sem opção de câmera nenhuma),
-               então oferecemos as 2 opções explicitamente -->
-          <button class="choice-card choice-photo" onclick="escolherFotoCamera()">
-            <div class="choice-icon">📷</div>
+          <!-- v18.22: volta a ser 1 botão só — ao tocar, abre um popup
+               pequeno perguntando Câmera ou Galeria (igual WhatsApp),
+               em vez de mostrar as 2 opções direto nessa tela -->
+          <button class="choice-card choice-photo" onclick="escolherFoto()">
+            <div class="choice-icon">📸</div>
             <div class="choice-text">
-              <div class="choice-title">Câmera</div>
-              <div class="choice-sub">tirar foto agora</div>
-            </div>
-            <div class="choice-badge">⚡ Rápido • Mágico</div>
-          </button>
-
-          <button class="choice-card choice-photo" onclick="escolherFotoGaleria()">
-            <div class="choice-icon">🖼️</div>
-            <div class="choice-text">
-              <div class="choice-title">Galeria</div>
-              <div class="choice-sub">escolher foto salva</div>
+              <div class="choice-title">Por Foto</div>
+              <div class="choice-sub">câmera ou galeria</div>
             </div>
             <div class="choice-badge">⚡ Rápido • Mágico</div>
           </button>
@@ -452,6 +442,39 @@
           </button>
 
           <button class="btn-secondary btn-cancelar-escolha" onclick="fecharEscolha()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE ESCOLHA — CÂMERA OU GALERIA (v18.22, estilo WhatsApp) -->
+    <!-- Aparece depois de tocar em "Por Foto" na tela "Como criar?" -->
+    <div class="modal-overlay" id="modal-escolha-fonte" role="dialog" aria-modal="true" aria-labelledby="modal-escolha-fonte-titulo">
+      <div class="modal modal-escolha">
+        <header class="modal-header">
+          <h2 id="modal-escolha-fonte-titulo">📸 Como quer enviar a foto?</h2>
+          <button class="modal-close" onclick="fecharEscolhaFonte()" aria-label="Fechar">✕</button>
+        </header>
+
+        <div class="escolha-body">
+          <button class="choice-card choice-photo" onclick="escolherFonteCamera()">
+            <div class="choice-icon">📷</div>
+            <div class="choice-text">
+              <div class="choice-title">Câmera</div>
+              <div class="choice-sub">tirar foto agora</div>
+            </div>
+          </button>
+
+          <button class="choice-card choice-photo" onclick="escolherFonteGaleria()">
+            <div class="choice-icon">🖼️</div>
+            <div class="choice-text">
+              <div class="choice-title">Galeria</div>
+              <div class="choice-sub">escolher foto salva</div>
+            </div>
+          </button>
+
+          <button class="btn-secondary btn-cancelar-escolha" onclick="fecharEscolhaFonte()">
             Cancelar
           </button>
         </div>
