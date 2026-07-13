@@ -73,9 +73,12 @@
 // v50........: bump forçado pra puxar app.js v18.23 (tutorial ganha slide
 //              sobre o botão de compartilhar troféu — estava desatualizado
 //              desde a v18.16)
+// v51........: bump forçado pra puxar app.js v18.24 + style.css (FIX: botão
+//              "📤 Compartilhar" / "Desfazer" no toast aparecia sem ação —
+//              pointer-events:none do .toast bloqueava o clique nos botões)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v50';
+const VERSAO = 'v51';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
