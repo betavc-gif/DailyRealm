@@ -131,9 +131,15 @@
 //                     ficam fixas só no código, pra não entregar a surpresa
 //                     do troféu "Data Especial" pra quem abre a tela (Aline
 //                     usa a mesma tela de Config)
+//              v18.21: FIX — em Android/Chrome mais novos, o seletor de foto
+//                     sem "capture" abre direto o Photo Picker do sistema
+//                     (só galeria, sem opção de câmera). Os 2 fluxos de foto
+//                     (criar quest por foto e foto de prova) agora perguntam
+//                     explicitamente Câmera ou Galeria em vez de depender do
+//                     celular escolher — reportado pela Roberta
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.20';
+const APP_VERSAO = 'v18.21';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -1904,7 +1910,7 @@ function toggleQuest(id) {
   if (!q) return;
   // T1: quests com "requerFoto" não concluem direto — abrem a câmera de prova primeiro
   if (!q.done && q.requerFoto) {
-    abrirCameraProva(id);
+    abrirEscolhaProva(id); // v18.21: pergunta câmera ou galeria antes de abrir o seletor
     return;
   }
   if (!q.done) {
@@ -2058,11 +2064,17 @@ function abrirEscolha() {
 function fecharEscolha() {
   document.getElementById('modal-escolha')?.classList.remove('active');
 }
-function escolherFoto() {
+// v18.21: 2 entradas explícitas (câmera / galeria) em vez de 1 só —
+// ver comentário em abrirCameraFoto()
+function escolherFotoCamera() {
   // Correção: chamada síncrona (sem setTimeout). Celulares exigem que
   // input.click() ocorra no mesmo instante do toque do usuário — um
   // atraso, mesmo pequeno, faz o Android bloquear a câmera silenciosamente.
-  abrirCameraFoto();
+  abrirCameraFoto(true);
+  fecharEscolha();
+}
+function escolherFotoGaleria() {
+  abrirCameraFoto(false);
   fecharEscolha();
 }
 function escolherDigitar() {
@@ -2325,12 +2337,20 @@ function mostrarToast(msg, duracaoMs = 2500) {
 // ═══════════════════════════════════════════════
 // CAPTURA POR FOTO + PREVIEW
 // ═══════════════════════════════════════════════
-function abrirCameraFoto() {
+// v18.21: recebe se deve FORÇAR a câmera (capture=environment) ou deixar
+// livre pra escolher da galeria. Em Android/Chrome mais novos, um input
+// sem "capture" abre direto o Photo Picker do sistema (só fotos salvas,
+// sem opção de câmera) — por isso paramos de deixar o celular decidir e
+// controlamos explicitamente qual das duas opções o input vai abrir.
+function abrirCameraFoto(forcarCamera) {
   const input = document.getElementById('input-camera');
   if (!input) {
     mostrarToast('⚠️ Erro: input de câmera não encontrado');
     return;
   }
+  if (forcarCamera) input.setAttribute('capture', 'environment');
+  else input.removeAttribute('capture');
+  STATE._modoFotoCamera = !!forcarCamera; // pra "tirar outra" lembrar o modo escolhido
   input.value = '';
   input.click();
 }
@@ -2384,7 +2404,7 @@ function abrirPreviewFoto() {
 function fecharPreviewFoto() {
   document.getElementById('preview-foto')?.classList.remove('active');
 }
-function tirarOutraFoto() { sairModoCorte(); abrirCameraFoto(); }
+function tirarOutraFoto() { sairModoCorte(); abrirCameraFoto(STATE._modoFotoCamera); }
 function cancelarPreview() {
   sairModoCorte();
   fecharPreviewFoto();
@@ -2557,13 +2577,34 @@ async function aplicarCorte() {
 // Fluxo separado do OCR: aqui a foto NÃO é enviada pra leitura de texto,
 // só serve pra confirmar a conclusão (+bônus) e oferecer compartilhamento.
 // ═══════════════════════════════════════════════
-function abrirCameraProva(questId) {
+// v18.21: mesma escolha explícita câmera/galeria da criação por foto —
+// ver comentário em abrirCameraFoto() sobre o Photo Picker do Android
+function abrirEscolhaProva(questId) {
+  STATE.provaQuestId = questId;
+  document.getElementById('modal-escolha-prova')?.classList.add('active');
+}
+function fecharEscolhaProva() {
+  document.getElementById('modal-escolha-prova')?.classList.remove('active');
+}
+function escolherProvaCamera() {
+  fecharEscolhaProva();
+  abrirCameraProva(STATE.provaQuestId, true);
+}
+function escolherProvaGaleria() {
+  fecharEscolhaProva();
+  abrirCameraProva(STATE.provaQuestId, false);
+}
+
+function abrirCameraProva(questId, forcarCamera) {
   STATE.provaQuestId = questId;
   const input = document.getElementById('input-camera-prova');
   if (!input) {
     mostrarToast('⚠️ Erro: câmera de prova não encontrada');
     return;
   }
+  if (forcarCamera) input.setAttribute('capture', 'environment');
+  else input.removeAttribute('capture');
+  STATE._modoProvaCamera = !!forcarCamera; // pra "tirar outra" lembrar o modo escolhido
   input.value = '';
   input.click(); // síncrono — mesma lição do escolherFoto (v15.6)
 }
@@ -2586,7 +2627,7 @@ function aoTirarFotoProva(event) {
   reader.readAsDataURL(file);
 }
 
-function tirarOutraFotoProva() { abrirCameraProva(STATE.provaQuestId); }
+function tirarOutraFotoProva() { abrirCameraProva(STATE.provaQuestId, STATE._modoProvaCamera); }
 
 function cancelarProva() {
   document.getElementById('preview-prova')?.classList.remove('active');
