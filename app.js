@@ -141,9 +141,13 @@
 //                     WhatsApp) que só aparece depois de tocar em "Por Foto" —
 //                     a Roberta não gostou de ver as 2 opções direto na tela
 //                     "Como criar?" (v18.21 mostrava as 2 lado a lado)
+//              v18.23: tutorial ganha um slide sobre o botão de compartilhar
+//                     troféu (📤) — estava parado na v18.16, sem mencionar
+//                     essa novidade do v18.19; reabre sozinho 1x pra quem já
+//                     viu a versão antiga
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.22';
+const APP_VERSAO = 'v18.23';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -750,7 +754,7 @@ function aplicarNomeNaUI() {
 // v18.16: reescrito pra explicar IA no XP, galeria, streak com perdão,
 // quests recorrentes, troféus secretos e backup na nuvem.
 // ═══════════════════════════════════════════════
-const TUTORIAL_VERSAO = 'v18.16';
+const TUTORIAL_VERSAO = 'v18.23';
 const TUTORIAL_SLIDES = [
   { emoji: '👑', titulo: 'Bem-vinda ao DailyRealm',
     texto: 'Transforme sua rotina em uma jornada épica! Cada tarefa do dia vira uma "quest" que te dá XP, sobe seu nível e desbloqueia troféus.' },
@@ -768,6 +772,8 @@ const TUTORIAL_SLIDES = [
     texto: 'Pra tarefas de rotina (remédio, arrumar a cama...), ative "🔁 Repetir" ao criar a quest. Ao concluir, a próxima já aparece pronta em Pendentes. E pra ninguém "inflar" XP fazendo a mesma coisa várias vezes no dia, repetir o mesmo título dá cada vez menos XP.' },
   { emoji: '🏆', titulo: 'Troféus e Recompensas',
     texto: 'Na aba Troféus você vê suas conquistas e a recompensa real de cada uma. Alguns troféus são secretos (aparecem como "❓" até você desbloquear sem querer) — pura surpresa! Ao desbloquear, marque como "Resgatado" quando aproveitar o prêmio de verdade.' },
+  { emoji: '📤', titulo: 'Compartilhe suas conquistas',
+    texto: 'Desbloqueou um troféu? Toque em "📤 Compartilhar" no aviso que aparece na hora, ou no ícone 📤 de qualquer troféu já desbloqueado na aba Troféus — abre o WhatsApp com uma mensagem prontinha pra contar a novidade.' },
   { emoji: '☁️', titulo: 'Backup na nuvem',
     texto: 'Em Config você pode criar uma frase pessoal de backup — sem login, sem senha. Ela guarda seu progresso na nuvem e sincroniza sozinha entre aparelhos (ex: celular e tablet). Ótimo se trocar de aparelho ou limpar o cache sem querer.' },
   { emoji: '🔔', titulo: 'Lembretes',
