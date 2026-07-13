@@ -145,9 +145,15 @@
 //                     troféu (📤) — estava parado na v18.16, sem mencionar
 //                     essa novidade do v18.19; reabre sozinho 1x pra quem já
 //                     viu a versão antiga
+//              v18.24: FIX — botão "📤 Compartilhar" (toast de troféu e
+//                     "Desfazer" ao excluir quest) aparecia mas não tinha
+//                     ação nenhuma ao tocar. Causa: .toast tem pointer-
+//                     events:none (pra não bloquear toques atrás dele) e
+//                     os botões dentro herdavam esse bloqueio, sem uma regra
+//                     liberando o clique só neles. Fix só em style.css.
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.23';
+const APP_VERSAO = 'v18.24';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
