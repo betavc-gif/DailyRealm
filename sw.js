@@ -64,9 +64,12 @@
 // v47........: bump forçado pra puxar app.js/index.html v18.20 (remove as
 //              4 datas especiais da tela de Config — ficam fixas só no
 //              código, pra não entregar a surpresa do troféu)
+// v48........: bump forçado pra puxar app.js/index.html v18.21 (fix: os
+//              2 fluxos de foto perguntam Câmera ou Galeria explicitamente
+//              — Android/Chrome mais novos abriam só a galeria)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v47';
+const VERSAO = 'v48';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
