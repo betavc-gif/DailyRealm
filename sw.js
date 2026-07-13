@@ -35,9 +35,35 @@
 //              (XP por item + ações em massa na revisão do OCR)
 // v35........: bump forçado pra puxar app.js/index.html/style.css v18.8
 //              (prévia de descrição + edição de quests existentes)
+// v36........: bump forçado pra puxar app.js v18.9 (troféus repaginados
+//              + novas recompensas)
+// v37........: bump forçado pra puxar app.js/index.html v18.10 (botão
+//              "Atualizar recompensas" em Config)
+// v38........: bump forçado pra puxar app.js/index.html v18.11 (IA define
+//              teto de XP anti-inflação, na quest digitada e no OCR)
+// v39........: bump forçado pra puxar app.js/index.html v18.12 (foto da
+//              galeria, troféus secretos temáticos, backup+sincronização)
+// v40........: bump forçado pra puxar app.js/index.html v18.13 (fix do
+//              teto de XP falhando aberto sem IA + Config reorganizada)
+// v41........: bump forçado pra puxar app.js v18.14 (12 novos troféus +
+//              recompensa em todos os troféus secretos + categoria Casal)
+// v42........: bump forçado pra puxar app.js/index.html v18.15 (Bloco 2:
+//              anti-farm por repetição, streak com "perdão", quests
+//              recorrentes)
+// v43........: bump forçado pra puxar app.js v18.16 (tutorial reescrito
+//              com todas as novidades, reabre sozinho 1x)
+// v44........: bump forçado pra puxar app.js/index.html/style.css v18.17
+//              (seção "Prontas pra resgatar" na tela de Troféus)
+// v45........: bump forçado pra puxar app.js/index.html v18.18 (fix:
+//              troféu duplicado entre "Prontas pra resgatar" e a grade)
+// v46........: bump forçado pra puxar app.js/index.html/style.css v18.19
+//              (3 troféus novos: Além da Lenda 200, Imparável 2.0 60,
+//              Data Especial + 4 datas em Config; compartilhar troféu
+//              via menu nativo do celular, no toast de desbloqueio e
+//              no quadro de troféus)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v35';
+const VERSAO = 'v46';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
