@@ -70,9 +70,12 @@
 // v49........: bump forçado pra puxar app.js/index.html v18.22 (a escolha
 //              Câmera/Galeria vira popup separado, estilo WhatsApp, em vez
 //              de aparecer direto na tela "Como criar?")
+// v50........: bump forçado pra puxar app.js v18.23 (tutorial ganha slide
+//              sobre o botão de compartilhar troféu — estava desatualizado
+//              desde a v18.16)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v49';
+const VERSAO = 'v50';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
