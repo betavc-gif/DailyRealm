@@ -1983,6 +1983,9 @@ select option:hover {
 }
 
 /* U4: botão Desfazer dentro do toast */
+/* v18.24 FIX: .toast tem pointer-events:none (pra não bloquear toques atrás
+   dele quando não tem botão) — sem isso aqui, o botão ficava visível mas
+   INCLICÁVEL, porque herda pointer-events:none do pai. */
 .toast-undo-btn {
   margin-left: 10px;
   background: none;
@@ -1993,6 +1996,7 @@ select option:hover {
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  pointer-events: auto;
 }
 
 /* v18.19: botão "Compartilhar" no toast de troféu desbloqueado — mesmo padrão do Desfazer */
@@ -2006,6 +2010,7 @@ select option:hover {
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  pointer-events: auto;
 }
 
 /* ═══════════════════════════════════════════════
