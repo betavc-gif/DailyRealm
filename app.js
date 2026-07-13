@@ -137,9 +137,13 @@
 //                     (criar quest por foto e foto de prova) agora perguntam
 //                     explicitamente Câmera ou Galeria em vez de depender do
 //                     celular escolher — reportado pela Roberta
+//              v18.22: a escolha Câmera/Galeria vira um popup separado (estilo
+//                     WhatsApp) que só aparece depois de tocar em "Por Foto" —
+//                     a Roberta não gostou de ver as 2 opções direto na tela
+//                     "Como criar?" (v18.21 mostrava as 2 lado a lado)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.21';
+const APP_VERSAO = 'v18.22';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -2064,18 +2068,31 @@ function abrirEscolha() {
 function fecharEscolha() {
   document.getElementById('modal-escolha')?.classList.remove('active');
 }
-// v18.21: 2 entradas explícitas (câmera / galeria) em vez de 1 só —
-// ver comentário em abrirCameraFoto()
-function escolherFotoCamera() {
+// v18.22: ao tocar em "Por Foto", fecha essa modal e abre um popup pequeno
+// perguntando Câmera ou Galeria (igual ao anexo do WhatsApp) — em vez de
+// mostrar as 2 opções direto nessa tela. Ver abrirCameraFoto() pro motivo
+// de precisarmos perguntar isso agora (Android/Chrome mudou o comportamento
+// do seletor de arquivo).
+function escolherFoto() {
+  fecharEscolha();
+  setTimeout(() => abrirEscolhaFonte(), 180); // mesmo padrão de escolherDigitar — deixa a modal anterior fechar antes de abrir a próxima
+}
+function abrirEscolhaFonte() {
+  document.getElementById('modal-escolha-fonte')?.classList.add('active');
+}
+function fecharEscolhaFonte() {
+  document.getElementById('modal-escolha-fonte')?.classList.remove('active');
+}
+function escolherFonteCamera() {
   // Correção: chamada síncrona (sem setTimeout). Celulares exigem que
   // input.click() ocorra no mesmo instante do toque do usuário — um
   // atraso, mesmo pequeno, faz o Android bloquear a câmera silenciosamente.
+  fecharEscolhaFonte();
   abrirCameraFoto(true);
-  fecharEscolha();
 }
-function escolherFotoGaleria() {
+function escolherFonteGaleria() {
+  fecharEscolhaFonte();
   abrirCameraFoto(false);
-  fecharEscolha();
 }
 function escolherDigitar() {
   fecharEscolha();
