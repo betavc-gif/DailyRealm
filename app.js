@@ -151,9 +151,16 @@
 //                     events:none (pra não bloquear toques atrás dele) e
 //                     os botões dentro herdavam esse bloqueio, sem uma regra
 //                     liberando o clique só neles. Fix só em style.css.
+//              v18.25: FIX — troféus adicionados em atualizações (v18.14/
+//                     v18.19 em diante) ficavam sem o cartão de recompensa
+//                     em instalações que já tinham `dr_recompensas` salvo,
+//                     porque o load não fazia merge com RECOMPENSAS_PADRAO
+//                     (diferente de player/config, que já faziam). Agora
+//                     faz merge — preenche só o que falta, sem sobrescrever
+//                     texto customizado nem o status "Resgatado" existente.
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSAO = 'v18.24';
+const APP_VERSAO = 'v18.25';
 console.log(`👑 DailyRealm ${APP_VERSAO} iniciado!`);
 
 if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -432,7 +439,12 @@ const STATE = {
   categorias: lerStorage('dr_categorias', CATEGORIAS_PADRAO),
   // T2: recompensas reais por troféu — { [conquistaId]: { texto, resgatado } }
   // v18: usa RECOMPENSAS_PADRAO como valor inicial (edições ficam salvas por instalação)
-  recompensas: lerStorage('dr_recompensas', { ...RECOMPENSAS_PADRAO }),
+  // v18.25: FIX — merge com RECOMPENSAS_PADRAO (igual já era feito com player/config).
+  // Antes, se `dr_recompensas` já existisse salvo, troféus novos adicionados numa
+  // atualização (ex.: v18.14, v18.19) ficavam sem recompensa nenhuma até alguém
+  // tocar manualmente em "🔄 Atualizar recompensas". Agora entra automático,
+  // preservando texto/resgatado de quem já estava salvo.
+  recompensas: { ...RECOMPENSAS_PADRAO, ...lerStorage('dr_recompensas', {}) },
   filtroAtivo: 'todas',
   filtroStatus: 'pendentes', // v18: 'pendentes' ou 'concluidas' (não persiste, reseta ao abrir)
   modal: { categoria: 'casa', xp: 10, requerFoto: false, editandoId: null, recorrente: null }, // v18.8: editandoId != null = editando quest existente | v18.15: recorrente = { frequencia }
