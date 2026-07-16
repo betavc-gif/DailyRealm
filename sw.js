@@ -76,9 +76,13 @@
 // v51........: bump forçado pra puxar app.js v18.24 + style.css (FIX: botão
 //              "📤 Compartilhar" / "Desfazer" no toast aparecia sem ação —
 //              pointer-events:none do .toast bloqueava o clique nos botões)
+// v52........: bump forçado pra puxar app.js v18.25 (FIX: troféus novos
+//              adicionados em atualizações ficavam sem cartão de recompensa
+//              em instalações que já tinham dr_recompensas salvo — agora
+//              faz merge automático com RECOMPENSAS_PADRAO)
 // ═══════════════════════════════════════════════════════════════
 
-const VERSAO = 'v51';
+const VERSAO = 'v52';
 const CACHE_VERSAO = `dailyrealm-${VERSAO}`;
 const TIMEOUT_REDE = 3000;       // ms para considerar rede lenta
 const TIMEOUT_REDE_HARD = 10000; // ms para abandonar fetch pendurado
